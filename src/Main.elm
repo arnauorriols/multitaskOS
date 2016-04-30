@@ -1,9 +1,8 @@
-module Main (Model) where
+module Main (Model, main) where
 
 {-| Multitask OS.
 
-# Types
-@docs Model
+@docs Model, main
 
 -}
 
@@ -40,9 +39,7 @@ type alias Model =
 
 
 type alias Thread =
-  { currentOp : String
-  , newOp : String
-  }
+  { currentOp : String }
 
 
 buildNewModel : Model
@@ -55,9 +52,7 @@ buildNewModel =
 
 buildNewThread : Thread
 buildNewThread =
-  { currentOp = ""
-  , newOp = ""
-  }
+  { currentOp = "" }
 
 
 scheduleNewThread : Model -> Thread -> Model
@@ -88,17 +83,9 @@ updateNewThread model newThread =
   { model | newThread = newThread }
 
 
-updateNewOp : String -> Thread -> Thread
-updateNewOp newOp thread =
-  { thread | newOp = newOp }
-
-
-saveNewOp : Thread -> Thread
-saveNewOp thread =
-  { thread
-    | currentOp = thread.newOp
-    , newOp = ""
-  }
+updateCurrentOp : String -> Thread -> Thread
+updateCurrentOp newOp thread =
+  { thread | currentOp = newOp }
 
 
 
@@ -110,16 +97,14 @@ type Action
   | YieldTask
   | ExecuteTask Thread (List Thread)
   | FinishTask
-  | UpdateNewOpInput String
+  | UpdateOpNewThread String
 
 
 update : Action -> Model -> Model
 update action model =
   case action of
     ScheduleTask ->
-      model.newThread
-        |> saveNewOp
-        |> scheduleNewThread model
+      scheduleNewThread model model.newThread
 
     YieldTask ->
       case model.thread of
@@ -139,9 +124,9 @@ update action model =
     FinishTask ->
       stopExecutingThread model
 
-    UpdateNewOpInput newOp ->
+    UpdateOpNewThread newOp ->
       model.newThread
-        |> updateNewOp newOp
+        |> updateCurrentOp newOp
         |> updateNewThread model
 
 
@@ -157,8 +142,8 @@ view address model =
         []
         [ text "Schedule a new task: "
         , input
-            [ value model.newThread.newOp
-            , on "input" targetValue (Signal.message address << UpdateNewOpInput)
+            [ value model.newThread.currentOp
+            , on "input" targetValue (Signal.message address << UpdateOpNewThread)
             ]
             []
         , button
@@ -196,6 +181,8 @@ view address model =
 -- WIRING
 
 
+{-| Simple Signal Wiring using an Actions tagged union
+-}
 main : Signal Html
 main =
   Signal.map (view actions.address) model
@@ -208,4 +195,4 @@ model =
 
 actions : Signal.Mailbox Action
 actions =
-  Signal.mailbox <| UpdateNewOpInput ""
+  Signal.mailbox <| UpdateOpNewThread ""
