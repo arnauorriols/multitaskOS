@@ -15,3 +15,4 @@ The product is born
 3. I can pause or finish a task when stopping
 4. When pausing, you are actually yielding execution of the current task
 5. When I yield, the OS tells me the next task I should work on
+6. I can schedule new tasks to be put to the tasks queue at any time

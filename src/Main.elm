@@ -8,8 +8,25 @@ import Html.Attributes exposing (..)
 -- MODEL
 
 
+{-| There are 3 main entities in our model:
+    * thread: Thread on current execution stack
+    * threadQueue: List of queued threads, waiting for some execution time
+    * newThread: Form data to build a new thread.
+
+The use flow is roughly summarized as follows:
+    1. At the start of the world, there is no thread executing or threads waiting on the threadQueue
+    2. An empty thread sits in newThread.
+    3. The user creates at least one new thread. Creating a thread means adding a newThread to the threadQueue
+    4. When the threadQueue holds at least one thread, the OS selects the first thread in the queue and prompts the user to start working on it
+    5. When the user starts working on a thread, this thread is stored in the field 'thread' of the Model.
+    6. The user cannot work on another thread until she yields or finishes the current thread under execution.
+    7. Finishing a thread removes it from the world.
+    8. Yielding a thread puts it at the end of the threadQueue.
+    9. When the user yields or finishes a task, OS jumps to OP 4.
+-}
 type alias Model =
   { thread : Maybe Thread
+  , threadQueue : List Thread
   , newThread : Thread
   }
 
@@ -17,55 +34,45 @@ type alias Model =
 type alias Thread =
   { currentOp : String
   , newOp : String
-  , executing : Bool
   }
 
 
-
--- Do not operate directly on the object, build an API for it
-
-
-newModel : Model
-newModel =
+buildNewModel : Model
+buildNewModel =
   { thread = Nothing
-  , newThread = buildNewThread ""
+  , threadQueue = []
+  , newThread = buildNewThread
   }
 
 
-buildNewThread : String -> Thread
-buildNewThread currentOp =
-  { currentOp = currentOp
+buildNewThread : Thread
+buildNewThread =
+  { currentOp = ""
   , newOp = ""
-  , executing = False
   }
 
 
-startNewThread : Model -> Thread -> Model
-startNewThread model thread =
+scheduleNewThread : Model -> Thread -> Model
+scheduleNewThread model thread =
   { model
-    | thread = Just { thread | executing = True }
-    , newThread = buildNewThread ""
+    | threadQueue = model.threadQueue ++ [ thread ]
+    , newThread = buildNewThread
   }
 
 
-yieldThread : Thread -> Thread
-yieldThread thread =
-  { thread | executing = False }
+executeThread : Thread -> Model -> Model
+executeThread thread model =
+  { model | thread = Just thread }
 
 
-resumeThread : Thread -> Thread
-resumeThread thread =
-  { thread | executing = True }
-
-
-finishThread : Model -> Thread -> Model
-finishThread model thread =
+stopExecutingThread : Model -> Model
+stopExecutingThread model =
   { model | thread = Nothing }
 
 
-updateThread : Model -> Thread -> Model
-updateThread model thread =
-  { model | thread = Just thread }
+updateThreadQueue : List Thread -> Model -> Model
+updateThreadQueue threadQueue model =
+  { model | threadQueue = threadQueue }
 
 
 updateNewThread : Model -> Thread -> Model
@@ -91,9 +98,9 @@ saveNewOp thread =
 
 
 type Action
-  = StartTask
+  = ScheduleTask
   | YieldTask
-  | ResumeTask
+  | ExecuteTask Thread (List Thread)
   | FinishTask
   | UpdateNewOpInput String
 
@@ -101,10 +108,10 @@ type Action
 update : Action -> Model -> Model
 update action model =
   case action of
-    StartTask ->
+    ScheduleTask ->
       model.newThread
         |> saveNewOp
-        |> startNewThread model
+        |> scheduleNewThread model
 
     YieldTask ->
       case model.thread of
@@ -112,27 +119,17 @@ update action model =
           Debug.crash "Cannot yield an unexisting task!"
 
         Just thread ->
-          thread
-            |> yieldThread
-            |> updateThread model
+          model
+            |> stopExecutingThread
+            |> updateThreadQueue (model.threadQueue ++ [ thread ])
 
-    ResumeTask ->
-      case model.thread of
-        Nothing ->
-          Debug.crash "Cannot yield an unexisting task!"
-
-        Just thread ->
-          thread
-            |> resumeThread
-            |> updateThread model
+    ExecuteTask thread threadQueue ->
+      model
+        |> updateThreadQueue threadQueue
+        |> executeThread thread
 
     FinishTask ->
-      case model.thread of
-        Nothing ->
-          Debug.crash "Cannot stop an unexisting task!"
-
-        Just thread ->
-          finishThread model thread
+      stopExecutingThread model
 
     UpdateNewOpInput newOp ->
       model.newThread
@@ -146,24 +143,35 @@ update action model =
 
 view : Signal.Address Action -> Model -> Html
 view address model =
-  case model.thread of
-    Nothing ->
-      div
+  div
+    []
+    [ div
         []
-        [ text "On what will you start working? "
+        [ text "Schedule a new task: "
         , input
             [ value model.newThread.newOp
             , on "input" targetValue (Signal.message address << UpdateNewOpInput)
             ]
             []
         , button
-            [ onClick address StartTask ]
-            [ text "Start" ]
+            [ onClick address ScheduleTask ]
+            [ text "Schedule" ]
         ]
+    , case model.thread of
+        Nothing ->
+          div []
+            <| case model.threadQueue of
+                [] ->
+                  [ text "Nothing to work on" ]
 
-    Just thread ->
-      case thread.executing of
-        True ->
+                nextThread :: threadQueue ->
+                  [ text ("Next task: " ++ nextThread.currentOp)
+                  , button
+                      [ onClick address (ExecuteTask nextThread threadQueue) ]
+                      [ text "Go!" ]
+                  ]
+
+        Just thread ->
           div
             []
             [ text ("You are currently working on '" ++ thread.currentOp ++ "'")
@@ -174,16 +182,7 @@ view address model =
                 [ onClick address FinishTask ]
                 [ text "Finished" ]
             ]
-
-        False ->
-          div
-            []
-            [ text ("You have yielded execution while working on '" ++ thread.currentOp ++ "'")
-            , text ("The next task is :" ++ thread.currentOp ++ "'")
-            , button
-                [ onClick address ResumeTask ]
-                [ text "Go!" ]
-            ]
+    ]
 
 
 
@@ -197,7 +196,7 @@ main =
 
 model : Signal Model
 model =
-  Signal.foldp update newModel actions.signal
+  Signal.foldp update buildNewModel actions.signal
 
 
 actions : Signal.Mailbox Action
