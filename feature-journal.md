@@ -14,3 +14,4 @@ The product is born
 2. I can start and stop working on a task
 3. I can pause or finish a task when stopping
 4. When pausing, you are actually yielding execution of the current task
+5. When I yield, the OS tells me the next task I should work on

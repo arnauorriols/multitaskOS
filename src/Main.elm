@@ -172,19 +172,17 @@ view address model =
                 [ text "Yield" ]
             , button
                 [ onClick address FinishTask ]
-                [ text "Stop" ]
+                [ text "Finished" ]
             ]
 
         False ->
           div
             []
             [ text ("You have yielded execution while working on '" ++ thread.currentOp ++ "'")
+            , text ("The next task is :" ++ thread.currentOp ++ "'")
             , button
                 [ onClick address ResumeTask ]
-                [ text "Resume" ]
-            , button
-                [ onClick address FinishTask ]
-                [ text "Stop" ]
+                [ text "Go!" ]
             ]
 
 
