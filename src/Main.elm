@@ -73,6 +73,16 @@ stopExecutingThread model =
   { model | thread = Nothing }
 
 
+getNextThread : List Thread -> ( Thread, List Thread )
+getNextThread threadQueue =
+  case threadQueue of
+    [] ->
+      Debug.crash "Cannot get the next thread of an empty queue!"
+
+    nextThread :: restQueue ->
+      ( nextThread, restQueue )
+
+
 updateThreadQueue : List Thread -> Model -> Model
 updateThreadQueue threadQueue model =
   { model | threadQueue = threadQueue }
@@ -95,7 +105,7 @@ updateCurrentOp newOp thread =
 type Action
   = ScheduleTask
   | YieldTask
-  | ExecuteTask Thread (List Thread)
+  | ExecuteNextTask
   | FinishTask
   | UpdateOpNewThread String
 
@@ -116,10 +126,14 @@ update action model =
             |> stopExecutingThread
             |> updateThreadQueue (model.threadQueue ++ [ thread ])
 
-    ExecuteTask thread threadQueue ->
-      model
-        |> updateThreadQueue threadQueue
-        |> executeThread thread
+    ExecuteNextTask ->
+      let
+        ( nextThread, restQueue ) =
+          getNextThread model.threadQueue
+      in
+        model
+          |> executeThread nextThread
+          |> updateThreadQueue restQueue
 
     FinishTask ->
       stopExecutingThread model
@@ -158,10 +172,17 @@ view address model =
                 [] ->
                   [ text "Nothing to work on" ]
 
-                nextThread :: threadQueue ->
-                  [ text ("Next task: " ++ nextThread.currentOp)
+                threadQueue ->
+                  [ text
+                      ("Next task: "
+                        ++ let
+                            ( nextThread, _ ) =
+                              getNextThread threadQueue
+                           in
+                            nextThread.currentOp
+                      )
                   , button
-                      [ onClick address (ExecuteTask nextThread threadQueue) ]
+                      [ onClick address ExecuteNextTask ]
                       [ text "Go!" ]
                   ]
 
