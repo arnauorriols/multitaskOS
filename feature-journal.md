@@ -13,3 +13,4 @@ The product is born
 1. I can tell the OS which task I am doing now.
 2. I can start and stop working on a task
 3. I can pause or finish a task when stopping
+4. When pausing, you are actually yielding execution of the current task

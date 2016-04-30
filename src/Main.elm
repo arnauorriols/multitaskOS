@@ -48,8 +48,8 @@ startNewThread model thread =
   }
 
 
-pauseThread : Thread -> Thread
-pauseThread thread =
+yieldThread : Thread -> Thread
+yieldThread thread =
   { thread | executing = False }
 
 
@@ -92,7 +92,7 @@ saveNewOp thread =
 
 type Action
   = StartTask
-  | PauseTask
+  | YieldTask
   | ResumeTask
   | FinishTask
   | UpdateNewOpInput String
@@ -106,20 +106,20 @@ update action model =
         |> saveNewOp
         |> startNewThread model
 
-    PauseTask ->
+    YieldTask ->
       case model.thread of
         Nothing ->
-          Debug.crash "Cannot pause an unexisting task!"
+          Debug.crash "Cannot yield an unexisting task!"
 
         Just thread ->
           thread
-            |> pauseThread
+            |> yieldThread
             |> updateThread model
 
     ResumeTask ->
       case model.thread of
         Nothing ->
-          Debug.crash "Cannot pause an unexisting task!"
+          Debug.crash "Cannot yield an unexisting task!"
 
         Just thread ->
           thread
@@ -168,8 +168,8 @@ view address model =
             []
             [ text ("You are currently working on '" ++ thread.currentOp ++ "'")
             , button
-                [ onClick address PauseTask ]
-                [ text "Pause" ]
+                [ onClick address YieldTask ]
+                [ text "Yield" ]
             , button
                 [ onClick address FinishTask ]
                 [ text "Stop" ]
@@ -178,7 +178,7 @@ view address model =
         False ->
           div
             []
-            [ text ("You have paused while working on '" ++ thread.currentOp ++ "'")
+            [ text ("You have yielded execution while working on '" ++ thread.currentOp ++ "'")
             , button
                 [ onClick address ResumeTask ]
                 [ text "Resume" ]
