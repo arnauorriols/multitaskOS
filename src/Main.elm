@@ -17,6 +17,7 @@ type alias Model =
 type alias Thread =
   { currentOp : String
   , newOp : String
+  , executing : Bool
   }
 
 
@@ -35,20 +36,36 @@ buildNewThread : String -> Thread
 buildNewThread currentOp =
   { currentOp = currentOp
   , newOp = ""
+  , executing = False
   }
 
 
-startThread : Model -> Thread -> Model
-startThread model thread =
+startNewThread : Model -> Thread -> Model
+startNewThread model thread =
   { model
-    | thread = Just thread
+    | thread = Just { thread | executing = True }
     , newThread = buildNewThread ""
   }
 
 
-stopThread : Model -> Thread -> Model
-stopThread model thread =
+pauseThread : Thread -> Thread
+pauseThread thread =
+  { thread | executing = False }
+
+
+resumeThread : Thread -> Thread
+resumeThread thread =
+  { thread | executing = True }
+
+
+finishThread : Model -> Thread -> Model
+finishThread model thread =
   { model | thread = Nothing }
+
+
+updateThread : Model -> Thread -> Model
+updateThread model thread =
+  { model | thread = Just thread }
 
 
 updateNewThread : Model -> Thread -> Model
@@ -75,7 +92,9 @@ saveNewOp thread =
 
 type Action
   = StartTask
-  | StopTask
+  | PauseTask
+  | ResumeTask
+  | FinishTask
   | UpdateNewOpInput String
 
 
@@ -85,15 +104,35 @@ update action model =
     StartTask ->
       model.newThread
         |> saveNewOp
-        |> startThread model
+        |> startNewThread model
 
-    StopTask ->
+    PauseTask ->
+      case model.thread of
+        Nothing ->
+          Debug.crash "Cannot pause an unexisting task!"
+
+        Just thread ->
+          thread
+            |> pauseThread
+            |> updateThread model
+
+    ResumeTask ->
+      case model.thread of
+        Nothing ->
+          Debug.crash "Cannot pause an unexisting task!"
+
+        Just thread ->
+          thread
+            |> resumeThread
+            |> updateThread model
+
+    FinishTask ->
       case model.thread of
         Nothing ->
           Debug.crash "Cannot stop an unexisting task!"
 
         Just thread ->
-          stopThread model thread
+          finishThread model thread
 
     UpdateNewOpInput newOp ->
       model.newThread
@@ -123,13 +162,30 @@ view address model =
         ]
 
     Just thread ->
-      div
-        []
-        [ text ("You are currently working on '" ++ thread.currentOp ++ "'")
-        , button
-            [ onClick address StopTask ]
-            [ text "Stop" ]
-        ]
+      case thread.executing of
+        True ->
+          div
+            []
+            [ text ("You are currently working on '" ++ thread.currentOp ++ "'")
+            , button
+                [ onClick address PauseTask ]
+                [ text "Pause" ]
+            , button
+                [ onClick address FinishTask ]
+                [ text "Stop" ]
+            ]
+
+        False ->
+          div
+            []
+            [ text ("You have paused while working on '" ++ thread.currentOp ++ "'")
+            , button
+                [ onClick address ResumeTask ]
+                [ text "Resume" ]
+            , button
+                [ onClick address FinishTask ]
+                [ text "Stop" ]
+            ]
 
 
 
