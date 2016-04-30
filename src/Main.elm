@@ -157,10 +157,11 @@ view address model =
             [ onClick address ScheduleTask ]
             [ text "Schedule" ]
         ]
-    , case model.thread of
-        Nothing ->
-          div []
-            <| case model.threadQueue of
+    , div
+        []
+        <| case model.thread of
+            Nothing ->
+              case model.threadQueue of
                 [] ->
                   [ text "Nothing to work on" ]
 
@@ -171,17 +172,15 @@ view address model =
                       [ text "Go!" ]
                   ]
 
-        Just thread ->
-          div
-            []
-            [ text ("You are currently working on '" ++ thread.currentOp ++ "'")
-            , button
-                [ onClick address YieldTask ]
-                [ text "Yield" ]
-            , button
-                [ onClick address FinishTask ]
-                [ text "Finished" ]
-            ]
+            Just thread ->
+              [ text ("You are currently working on '" ++ thread.currentOp ++ "'")
+              , button
+                  [ onClick address YieldTask ]
+                  [ text "Yield" ]
+              , button
+                  [ onClick address FinishTask ]
+                  [ text "Finished" ]
+              ]
     ]
 
 
