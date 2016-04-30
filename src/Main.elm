@@ -1,4 +1,11 @@
-module Main (..) where
+module Main (Model) where
+
+{-| Multitask OS.
+
+# Types
+@docs Model
+
+-}
 
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -23,6 +30,7 @@ The use flow is roughly summarized as follows:
     7. Finishing a thread removes it from the world.
     8. Yielding a thread puts it at the end of the threadQueue.
     9. When the user yields or finishes a task, OS jumps to OP 4.
+
 -}
 type alias Model =
   { thread : Maybe Thread

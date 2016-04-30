@@ -6,6 +6,7 @@ repl-temp-*
 # Do not keep build in repo
 elm.js
 index.html
+docs.json
 
 # vim stuff
 *.swp
