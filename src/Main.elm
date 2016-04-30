@@ -9,7 +9,9 @@ import Html.Attributes exposing (..)
 
 
 type alias Model =
-  { thread : Thread }
+  { thread : Maybe Thread
+  , newThread : Thread
+  }
 
 
 type alias Thread =
@@ -24,19 +26,34 @@ type alias Thread =
 
 newModel : Model
 newModel =
-  { thread = newThread "" }
+  { thread = Nothing
+  , newThread = buildNewThread ""
+  }
 
 
-changeThread : Model -> Thread -> Model
-changeThread model thread =
-  { model | thread = thread }
-
-
-newThread : String -> Thread
-newThread currentOp =
+buildNewThread : String -> Thread
+buildNewThread currentOp =
   { currentOp = currentOp
   , newOp = ""
   }
+
+
+startThread : Model -> Thread -> Model
+startThread model thread =
+  { model
+    | thread = Just thread
+    , newThread = buildNewThread ""
+  }
+
+
+stopThread : Model -> Thread -> Model
+stopThread model thread =
+  { model | thread = Nothing }
+
+
+updateNewThread : Model -> Thread -> Model
+updateNewThread model newThread =
+  { model | newThread = newThread }
 
 
 updateNewOp : String -> Thread -> Thread
@@ -57,22 +74,31 @@ saveNewOp thread =
 
 
 type Action
-  = ChangeTask
+  = StartTask
+  | StopTask
   | UpdateNewOpInput String
 
 
 update : Action -> Model -> Model
 update action model =
   case action of
-    ChangeTask ->
-      model.thread
+    StartTask ->
+      model.newThread
         |> saveNewOp
-        |> changeThread model
+        |> startThread model
+
+    StopTask ->
+      case model.thread of
+        Nothing ->
+          Debug.crash "Cannot stop an unexisting task!"
+
+        Just thread ->
+          stopThread model thread
 
     UpdateNewOpInput newOp ->
-      model.thread
+      model.newThread
         |> updateNewOp newOp
-        |> changeThread model
+        |> updateNewThread model
 
 
 
@@ -81,18 +107,29 @@ update action model =
 
 view : Signal.Address Action -> Model -> Html
 view address model =
-  div
-    []
-    [ text ("You are currently working on: " ++ model.thread.currentOp)
-    , input
-        [ value model.thread.newOp
-        , on "input" targetValue (Signal.message address << UpdateNewOpInput)
-        ]
+  case model.thread of
+    Nothing ->
+      div
         []
-    , button
-        [ onClick address ChangeTask ]
-        [ text "Save" ]
-    ]
+        [ text "On what will you start working? "
+        , input
+            [ value model.newThread.newOp
+            , on "input" targetValue (Signal.message address << UpdateNewOpInput)
+            ]
+            []
+        , button
+            [ onClick address StartTask ]
+            [ text "Start" ]
+        ]
+
+    Just thread ->
+      div
+        []
+        [ text ("You are currently working on '" ++ thread.currentOp ++ "'")
+        , button
+            [ onClick address StopTask ]
+            [ text "Stop" ]
+        ]
 
 
 
@@ -111,4 +148,4 @@ model =
 
 actions : Signal.Mailbox Action
 actions =
-  Signal.mailbox ChangeTask
+  Signal.mailbox <| UpdateNewOpInput ""

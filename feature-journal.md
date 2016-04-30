@@ -8,6 +8,7 @@ This journal operates as the 'test' part of the equation: the feature evolution 
 point of its life. 
 
 The product is born
-===================
+-------------------
 
 1. I can tell the OS which task I am doing now.
+2. I can start and stop working on a task
