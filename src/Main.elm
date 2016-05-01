@@ -210,6 +210,35 @@ view address model =
                   [ onClick address FinishTask ]
                   [ text "Finished" ]
               ]
+    , div
+        []
+        <| let
+            thread =
+              case model.thread of
+                Nothing ->
+                  case model.threadQueue of
+                    [] ->
+                      Nothing
+
+                    threadQueue ->
+                      let
+                        ( nextThread, _ ) =
+                          getNextThread threadQueue
+                      in
+                        Just nextThread
+
+                Just thread ->
+                  Just thread
+           in
+            [ h2
+                []
+                <| case thread of
+                    Nothing ->
+                      []
+
+                    Just thread ->
+                      [ text thread.currentOp ]
+            ]
     ]
 
 
