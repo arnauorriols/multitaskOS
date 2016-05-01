@@ -16,3 +16,4 @@ The product is born
 4. When pausing, you are actually yielding execution of the current task
 5. When I yield, the OS tells me the next task I should work on
 6. I can schedule new tasks to be put to the tasks queue at any time
+7. When prompted to start working on the next task, I can choose to skip it

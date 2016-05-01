@@ -107,8 +107,9 @@ updateCurrentOp newOp thread =
 type Action
   = ScheduleTask
   | YieldTask
-  | ExecuteNextTask
   | FinishTask
+  | ExecuteNextTask
+  | SkipNextTask
   | UpdateOpNewThread String
 
 
@@ -130,6 +131,9 @@ update action model =
             |> stopExecutingThread
             |> updateThreadQueue (enqueueThread thread model.threadQueue)
 
+    FinishTask ->
+      stopExecutingThread model
+
     ExecuteNextTask ->
       let
         ( nextThread, restQueue ) =
@@ -139,8 +143,12 @@ update action model =
           |> executeThread nextThread
           |> updateThreadQueue restQueue
 
-    FinishTask ->
-      stopExecutingThread model
+    SkipNextTask ->
+      let
+        ( nextThread, restQueue ) =
+          getNextThread model.threadQueue
+      in
+        updateThreadQueue (enqueueThread nextThread restQueue) model
 
     UpdateOpNewThread newOp ->
       model.newThread
@@ -188,6 +196,9 @@ view address model =
                   , button
                       [ onClick address ExecuteNextTask ]
                       [ text "Go!" ]
+                  , button
+                      [ onClick address SkipNextTask ]
+                      [ text "Skip" ]
                   ]
 
             Just thread ->
