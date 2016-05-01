@@ -55,12 +55,9 @@ buildNewThread =
   { currentOp = "" }
 
 
-scheduleNewThread : Model -> Thread -> Model
-scheduleNewThread model thread =
-  { model
-    | threadQueue = model.threadQueue ++ [ thread ]
-    , newThread = buildNewThread
-  }
+flushNewThread : Model -> Model
+flushNewThread model =
+  { model | newThread = buildNewThread }
 
 
 executeThread : Thread -> Model -> Model
@@ -81,6 +78,11 @@ getNextThread threadQueue =
 
     nextThread :: restQueue ->
       ( nextThread, restQueue )
+
+
+enqueueThread : Thread -> List Thread -> List Thread
+enqueueThread thread threadQueue =
+  threadQueue ++ [ thread ]
 
 
 updateThreadQueue : List Thread -> Model -> Model
@@ -114,7 +116,9 @@ update : Action -> Model -> Model
 update action model =
   case action of
     ScheduleTask ->
-      scheduleNewThread model model.newThread
+      model
+        |> updateThreadQueue (enqueueThread model.newThread model.threadQueue)
+        |> flushNewThread
 
     YieldTask ->
       case model.thread of
@@ -124,7 +128,7 @@ update action model =
         Just thread ->
           model
             |> stopExecutingThread
-            |> updateThreadQueue (model.threadQueue ++ [ thread ])
+            |> updateThreadQueue (enqueueThread thread model.threadQueue)
 
     ExecuteNextTask ->
       let
