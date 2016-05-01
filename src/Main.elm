@@ -315,7 +315,12 @@ view address model =
                     [ text "Journal" ]
                 , ul
                     []
-                    <| List.map (\journalEntry -> li [] [ text journalEntry ]) thread.journal
+                    <| case thread.journal of
+                        [] ->
+                          [ text "Nothing logged yet for this task" ]
+
+                        journal ->
+                          List.map (\journalEntry -> li [] [ text journalEntry ]) journal
                 ]
     ]
 
