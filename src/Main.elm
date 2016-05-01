@@ -132,6 +132,7 @@ updateExecutingThread model thread =
 
 type Action
   = ScheduleTask
+  | NoOp
   | YieldTask
   | FinishTask
   | ExecuteNextTask
@@ -144,6 +145,9 @@ type Action
 update : Action -> Model -> Model
 update action model =
   case action of
+    NoOp ->
+      model
+
     ScheduleTask ->
       model
         |> updateThreadQueue (enqueueThread model.newThread model.threadQueue)
@@ -199,6 +203,18 @@ update action model =
 -- VIEW
 
 
+onEnter : Signal.Address Action -> Action -> Attribute
+onEnter address action =
+  onKeyDown address
+    <| \key ->
+        case key of
+          13 ->
+            action
+
+          _ ->
+            NoOp
+
+
 view : Signal.Address Action -> Model -> Html
 view address model =
   div
@@ -209,6 +225,7 @@ view address model =
         , input
             [ value model.newThread.threadName
             , on "input" targetValue <| Signal.message address << UpdateOpNewThread
+            , onEnter address ScheduleTask
             ]
             []
         , button
@@ -257,6 +274,7 @@ view address model =
                   , input
                       [ value thread.worklog
                       , on "input" targetValue <| Signal.message address << UpdateWorklog thread
+                      , onEnter address <| SaveWorklogToJournal thread
                       ]
                       []
                   , button

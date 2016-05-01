@@ -2,7 +2,7 @@
     "version": "1.0.0",
     "summary": "Multitasking OS",
     "repository": "https://github.com/arnauorriols/multitaskos.git",
-    "license": "MIT",
+    "license": "BSD3",
     "source-directories": [
         "src"
     ],

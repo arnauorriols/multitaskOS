@@ -19,3 +19,4 @@ The product is born
 7. When prompted to start working on the next task, I can choose to skip it
 8. I can see the details of the next/ongoing task in a panel
 9. When working on a task, I can log the work done in a journal
+10. I can use enter to schedule new tasks or save worklog to journal
