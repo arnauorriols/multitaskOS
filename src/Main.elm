@@ -261,7 +261,12 @@ view address model =
                       [ onClick address ExecuteNextTask ]
                       [ text "Go!" ]
                   , button
-                      [ onClick address SkipNextTask ]
+                      ([ onClick address SkipNextTask ]
+                        ++ if List.length threadQueue < 2 then
+                            [ disabled True ]
+                           else
+                            []
+                      )
                       [ text "Skip" ]
                   , button
                       [ onClick address DropNextTask ]
