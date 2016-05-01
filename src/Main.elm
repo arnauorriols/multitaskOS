@@ -137,6 +137,7 @@ type Action
   | FinishTask
   | ExecuteNextTask
   | SkipNextTask
+  | DropNextTask
   | UpdateOpNewThread String
   | UpdateWorklog Thread String
   | SaveWorklogToJournal Thread
@@ -181,6 +182,13 @@ update action model =
           getNextThread model.threadQueue
       in
         updateThreadQueue (enqueueThread nextThread restQueue) model
+
+    DropNextTask ->
+      let
+        ( _, restQueue ) =
+          getNextThread model.threadQueue
+      in
+        updateThreadQueue restQueue model
 
     UpdateOpNewThread newOp ->
       model.newThread
@@ -255,6 +263,9 @@ view address model =
                   , button
                       [ onClick address SkipNextTask ]
                       [ text "Skip" ]
+                  , button
+                      [ onClick address DropNextTask ]
+                      [ text "Drop" ]
                   ]
 
             Just thread ->

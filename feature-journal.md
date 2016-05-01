@@ -20,3 +20,4 @@ The product is born
 8. I can see the details of the next/ongoing task in a panel
 9. When working on a task, I can log the work done in a journal
 10. I can use enter to schedule new tasks or save worklog to journal
+11. I can drop a task when prompted to start working on it
