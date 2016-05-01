@@ -39,7 +39,10 @@ type alias Model =
 
 
 type alias Thread =
-  { currentOp : String }
+  { threadName : String
+  , worklog : String
+  , journal : List String
+  }
 
 
 buildNewModel : Model
@@ -52,7 +55,10 @@ buildNewModel =
 
 buildNewThread : Thread
 buildNewThread =
-  { currentOp = "" }
+  { threadName = ""
+  , worklog = ""
+  , journal = []
+  }
 
 
 flushNewThread : Model -> Model
@@ -97,7 +103,27 @@ updateNewThread model newThread =
 
 updateCurrentOp : String -> Thread -> Thread
 updateCurrentOp newOp thread =
-  { thread | currentOp = newOp }
+  { thread | threadName = newOp }
+
+
+updateWorklog : String -> Thread -> Thread
+updateWorklog worklog thread =
+  { thread | worklog = worklog }
+
+
+saveWorklogToJournal : String -> Thread -> Thread
+saveWorklogToJournal worklog thread =
+  { thread | journal = thread.journal ++ [ worklog ] }
+
+
+flushWorklog : Thread -> Thread
+flushWorklog thread =
+  { thread | worklog = "" }
+
+
+updateExecutingThread : Model -> Thread -> Model
+updateExecutingThread model thread =
+  { model | thread = Just thread }
 
 
 
@@ -111,6 +137,8 @@ type Action
   | ExecuteNextTask
   | SkipNextTask
   | UpdateOpNewThread String
+  | UpdateWorklog Thread String
+  | SaveWorklogToJournal Thread
 
 
 update : Action -> Model -> Model
@@ -155,6 +183,17 @@ update action model =
         |> updateCurrentOp newOp
         |> updateNewThread model
 
+    UpdateWorklog thread worklog ->
+      thread
+        |> updateWorklog worklog
+        |> updateExecutingThread model
+
+    SaveWorklogToJournal thread ->
+      thread
+        |> saveWorklogToJournal thread.worklog
+        |> flushWorklog
+        |> updateExecutingThread model
+
 
 
 -- VIEW
@@ -168,8 +207,8 @@ view address model =
         []
         [ text "Schedule a new task: "
         , input
-            [ value model.newThread.currentOp
-            , on "input" targetValue (Signal.message address << UpdateOpNewThread)
+            [ value model.newThread.threadName
+            , on "input" targetValue <| Signal.message address << UpdateOpNewThread
             ]
             []
         , button
@@ -191,7 +230,7 @@ view address model =
                             ( nextThread, _ ) =
                               getNextThread threadQueue
                            in
-                            nextThread.currentOp
+                            nextThread.threadName
                       )
                   , button
                       [ onClick address ExecuteNextTask ]
@@ -202,13 +241,28 @@ view address model =
                   ]
 
             Just thread ->
-              [ text ("You are currently working on '" ++ thread.currentOp ++ "'")
-              , button
-                  [ onClick address YieldTask ]
-                  [ text "Yield" ]
-              , button
-                  [ onClick address FinishTask ]
-                  [ text "Finished" ]
+              [ div
+                  []
+                  [ text ("You are currently working on '" ++ thread.threadName ++ "'")
+                  , button
+                      [ onClick address YieldTask ]
+                      [ text "Yield" ]
+                  , button
+                      [ onClick address FinishTask ]
+                      [ text "Finished" ]
+                  ]
+              , div
+                  []
+                  [ text "Log work: "
+                  , input
+                      [ value thread.worklog
+                      , on "input" targetValue <| Signal.message address << UpdateWorklog thread
+                      ]
+                      []
+                  , button
+                      [ onClick address <| SaveWorklogToJournal thread ]
+                      [ text "Save to Journal" ]
+                  ]
               ]
     , div
         []
@@ -230,15 +284,21 @@ view address model =
                 Just thread ->
                   Just thread
            in
-            [ h2
+            case thread of
+              Nothing ->
                 []
-                <| case thread of
-                    Nothing ->
-                      []
 
-                    Just thread ->
-                      [ text thread.currentOp ]
-            ]
+              Just thread ->
+                [ h2
+                    []
+                    [ text <| "Task: " ++ thread.threadName ]
+                , h3
+                    []
+                    [ text "Journal" ]
+                , ul
+                    []
+                    <| List.map (\journalEntry -> li [] [ text journalEntry ]) thread.journal
+                ]
     ]
 
 
