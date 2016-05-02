@@ -21,3 +21,4 @@ The product is born
 9. When working on a task, I can log the work done in a journal
 10. I can use enter to schedule new tasks or save worklog to journal
 11. I can drop a task when prompted to start working on it
+12. When restarting the browser, I want to keep working where I left

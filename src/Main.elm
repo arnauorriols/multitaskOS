@@ -9,6 +9,7 @@ module Main (Model, main) where
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import Native.Main
 
 
 -- MODEL
@@ -47,10 +48,15 @@ type alias Thread =
 
 buildNewModel : Model
 buildNewModel =
-  { thread = Nothing
-  , threadQueue = []
-  , newThread = buildNewThread
-  }
+  case Native.Main.retrievePersistedModel () of
+    Just model ->
+      model
+
+    Nothing ->
+      { thread = Nothing
+      , threadQueue = []
+      , newThread = buildNewThread
+      }
 
 
 buildNewThread : Thread
@@ -350,6 +356,11 @@ view address model =
 main : Signal Html
 main =
   Signal.map (view actions.address) model
+
+
+port persistModel : Signal Model
+port persistModel =
+  Signal.map Native.Main.persistModel model
 
 
 model : Signal Model
