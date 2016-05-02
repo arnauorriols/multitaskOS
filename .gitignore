@@ -4,8 +4,7 @@ elm-stuff/
 repl-temp-*
 
 # Do not keep build in repo
-elm.js
-index.html
+App.js
 docs.json
 
 # vim stuff
