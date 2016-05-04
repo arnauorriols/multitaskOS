@@ -4,15 +4,66 @@
 <head>
   <meta charset="UTF-8">
   <title>MultitaskOS</title>
-  <script type="text/javascript" src="App.js"></script>
+  <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/css/materialize.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/js/materialize.min.js"></script>
+  <script type="text/javascript" src="App.js"></script>
+  <style>
+  body {
+    display: flex;
+    height: 100vh;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  button {
+    margin-top: 0.2em;
+    margin-right: 0.3em;
+  }
+
+  input {
+    margin-right: 0.5em !important;
+  }
+
+  .flex-contained {
+    flex: 1 1 auto;
+  }
+
+  .flex-container {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .flex-container .row {
+    flex-direction: row;
+  }
+
+  .flex-scrollable {
+    overflow: auto;
+  }
+  </style>
 </head>
 
-<body>
+<body class="grey lighten-4">
+<header>
+    <nav style="float:left">
+        <div class="nav-wrapper cyan darken-1">
+            <div class="container">
+                <a class="brand-logo">MultitaskOS</a>
+            </div>
+        </div>
+    </nav>
+</header>
+<main class="flex-container flex-contained">
+    <div id="elm-app" class="flex-container flex-contained"></div>
+</main>
 </body>
 
 <script type="text/javascript">
-Elm.fullscreen(Elm.Main);
+Elm.embed(Elm.Main, document.getElementById('elm-app'));
 </script>
 
 </html>

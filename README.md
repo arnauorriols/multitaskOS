@@ -6,4 +6,4 @@ Small tool to delegate to the PC what it do best, and we do worst, when multitas
 Build
 -----
 
-    $ elm-make src/Main.elm --docs docs.json
+    $ elm-make --warn --output App.js src/Main.elm
