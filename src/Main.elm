@@ -83,8 +83,27 @@ stopExecutingThread model =
   { model | thread = Nothing }
 
 
-getNextThread : List Thread -> ( Thread, List Thread )
-getNextThread threadQueue =
+getNextScheduledThread : Model -> Maybe Thread
+getNextScheduledThread model =
+  case model.thread of
+    Nothing ->
+      case model.threadQueue of
+        [] ->
+          Nothing
+
+        threadQueue ->
+          let
+            ( nextThread, _ ) =
+              getNextThreadFromQueue threadQueue
+          in
+            Just nextThread
+
+    Just thread ->
+      Just thread
+
+
+getNextThreadFromQueue : List Thread -> ( Thread, List Thread )
+getNextThreadFromQueue threadQueue =
   case threadQueue of
     [] ->
       Debug.crash "Cannot get the next thread of an empty queue!"
@@ -183,7 +202,7 @@ update action model =
     ExecuteNextTask ->
       let
         ( nextThread, restQueue ) =
-          getNextThread model.threadQueue
+          getNextThreadFromQueue model.threadQueue
       in
         model
           |> executeThread nextThread
@@ -192,14 +211,14 @@ update action model =
     SkipNextTask ->
       let
         ( nextThread, restQueue ) =
-          getNextThread model.threadQueue
+          getNextThreadFromQueue model.threadQueue
       in
         updateThreadQueue (enqueueThread nextThread restQueue) model
 
     DropNextTask ->
       let
         ( _, restQueue ) =
-          getNextThread model.threadQueue
+          getNextThreadFromQueue model.threadQueue
       in
         updateThreadQueue restQueue model
 
@@ -224,6 +243,177 @@ update action model =
 -- VIEW
 
 
+view : Signal.Address Action -> Model -> Html
+view address model =
+  div
+    [ class "container flex-container flex-contained" ]
+    [ div
+        [ class "row flex-container flex-contained" ]
+        [ div
+            [ class "col s4 flex-container flex-contained" ]
+            [ taskScheduleForm address model ]
+        , div
+            [ class "col s8 flex-container flex-contained" ]
+            <| contextSwitchingWidget address model
+        ]
+    ]
+
+
+taskScheduleForm : Signal.Address Action -> Model -> Html
+taskScheduleForm address model =
+  div
+    [ class "section" ]
+    [ div
+        [ class "input-field" ]
+        [ input
+            [ id "input-thread-name"
+            , class "validate"
+            , type' "text"
+            , value model.newThread.threadName
+            , on "input" targetValue <| Signal.message address << UpdateOpNewThread
+            , onEnter address ScheduleTask
+            ]
+            []
+        , label
+            [ for "input-thread-name" ]
+            [ text "Task title" ]
+        ]
+    , button
+        [ class "waves-effect waves-light btn"
+        , onClick address ScheduleTask
+        ]
+        [ text "Schedule" ]
+    ]
+
+
+contextSwitchingWidget : Signal.Address Action -> Model -> List Html
+contextSwitchingWidget address model =
+  [ div
+      [ class "row" ]
+      [ taskTitle model
+      , contextSwitchingControls address model
+      ]
+  ]
+    ++ journalWidget address model
+
+
+taskTitle : Model -> Html
+taskTitle model =
+  div
+    [ class "col s12" ]
+    <| case getNextScheduledThread model of
+        Nothing ->
+          [ h5 [ class "section grey-text text-lighten-2" ] [ text "Nothing to work on" ] ]
+
+        Just thread ->
+          [ h3
+              [ class "grey-text text-darken-2" ]
+              [ text thread.threadName ]
+          ]
+
+
+contextSwitchingControls : Signal.Address Action -> Model -> Html
+contextSwitchingControls address model =
+  div
+    [ class "col s12" ]
+    <| case model.thread of
+        Nothing ->
+          case model.threadQueue of
+            [] ->
+              []
+
+            threadQueue ->
+              [ button
+                  [ class "waves-effect waves-light btn"
+                  , onClick address ExecuteNextTask
+                  ]
+                  [ text "Go!" ]
+              , button
+                  ([ classList
+                      [ ( "waves-effect waves-light btn", True )
+                      , ( "disabled", List.length threadQueue < 2 )
+                      ]
+                   , onClick address SkipNextTask
+                   ]
+                  )
+                  [ text "Skip" ]
+              , button
+                  [ class "waves-effect waves-light btn"
+                  , onClick address DropNextTask
+                  ]
+                  [ text "Drop" ]
+              ]
+
+        Just thread ->
+          [ button
+              [ class "waves-effect waves-light btn"
+              , onClick address YieldTask
+              ]
+              [ text "Yield" ]
+          , button
+              [ class "waves-effect waves-light btn"
+              , onClick address FinishTask
+              ]
+              [ text "Finished" ]
+          ]
+
+
+journalWidget : Signal.Address Action -> Model -> List Html
+journalWidget address model =
+  case getNextScheduledThread model of
+    Nothing ->
+      []
+
+    Just thread ->
+      [ div
+          [ class "row flex-container flex-contained" ]
+          [ div
+              [ class "flex-container flex-contained col s12" ]
+              [ ul
+                  [ class "grey-text collection with-header flex-scrollable z-depth-1" ]
+                  <| case thread.journal of
+                      [] ->
+                        [ li [ class "collection-item" ] [ text "Nothing logged yet for this task" ] ]
+
+                      journal ->
+                        List.map (\journalEntry -> li [ class "collection-item" ] [ text journalEntry ]) journal
+              ]
+          ]
+      ]
+        ++ case model.thread of
+            Nothing ->
+              []
+
+            Just thread ->
+              [ div
+                  [ class "row" ]
+                  [ div
+                      [ class "input-field col s9" ]
+                      [ input
+                          [ id "input-worklog"
+                          , value thread.worklog
+                          , type' "text"
+                          , on "input" targetValue <| Signal.message address << UpdateWorklog thread
+                          , onEnter address <| SaveWorklogToJournal thread
+                          ]
+                          []
+                      , label
+                          [ for "input-worklog" ]
+                          [ text "Journal entry" ]
+                      ]
+                  , div
+                      [ class "input-field col s3" ]
+                      [ button
+                          [ class "waves-effect waves-light btn"
+                          , type' "submit"
+                          , onClick address <| SaveWorklogToJournal thread
+                          ]
+                          [ text "Log" ]
+                      ]
+                  ]
+              ]
+
+
 onEnter : Signal.Address Action -> Action -> Attribute
 onEnter address action =
   onKeyDown address
@@ -234,190 +424,6 @@ onEnter address action =
 
           _ ->
             NoOp
-
-
-view : Signal.Address Action -> Model -> Html
-view address model =
-  div
-    [ class "container flex-container flex-contained" ]
-    [ div
-        [ class "row flex-container flex-contained" ]
-        [ div
-            [ class "col s4" ]
-            [ div
-                [ class "section" ]
-                [ div
-                    [ class "input-field" ]
-                    [ input
-                        [ id "input-thread-name"
-                        , class "validate"
-                        , type' "text"
-                        , value model.newThread.threadName
-                        , on "input" targetValue <| Signal.message address << UpdateOpNewThread
-                        , onEnter address ScheduleTask
-                        ]
-                        []
-                    , label
-                        [ for "input-thread-name" ]
-                        [ text "Task title" ]
-                    ]
-                , button
-                    [ class "waves-effect waves-light btn"
-                    , onClick address ScheduleTask
-                    ]
-                    [ text "Schedule" ]
-                ]
-            ]
-        , div
-            [ class "col s8 flex-container flex-contained" ]
-            ([ div
-                [ class "row" ]
-                [ div
-                    [ class "col s12" ]
-                    <| let
-                        thread =
-                          case model.thread of
-                            Nothing ->
-                              case model.threadQueue of
-                                [] ->
-                                  Nothing
-
-                                threadQueue ->
-                                  let
-                                    ( nextThread, _ ) =
-                                      getNextThread threadQueue
-                                  in
-                                    Just nextThread
-
-                            Just thread ->
-                              Just thread
-                       in
-                        case thread of
-                          Nothing ->
-                            [ h5 [ class "section grey-text text-lighten-2" ] [ text "Nothing to work on" ] ]
-
-                          Just thread ->
-                            [ h3
-                                [ class "grey-text text-darken-2" ]
-                                [ text thread.threadName ]
-                            ]
-                , div
-                    [ class "col s12" ]
-                    <| case model.thread of
-                        Nothing ->
-                          case model.threadQueue of
-                            [] ->
-                              []
-
-                            threadQueue ->
-                              [ button
-                                  [ class "waves-effect waves-light btn"
-                                  , onClick address ExecuteNextTask
-                                  ]
-                                  [ text "Go!" ]
-                              , button
-                                  ([ classList
-                                      [ ( "waves-effect waves-light btn", True )
-                                      , ( "disabled", List.length threadQueue < 2 )
-                                      ]
-                                   , onClick address SkipNextTask
-                                   ]
-                                  )
-                                  [ text "Skip" ]
-                              , button
-                                  [ class "waves-effect waves-light btn"
-                                  , onClick address DropNextTask
-                                  ]
-                                  [ text "Drop" ]
-                              ]
-
-                        Just thread ->
-                          [ button
-                              [ class "waves-effect waves-light btn"
-                              , onClick address YieldTask
-                              ]
-                              [ text "Yield" ]
-                          , button
-                              [ class "waves-effect waves-light btn"
-                              , onClick address FinishTask
-                              ]
-                              [ text "Finished" ]
-                          ]
-                ]
-             ]
-              ++ let
-                  thread =
-                    case model.thread of
-                      Nothing ->
-                        case model.threadQueue of
-                          [] ->
-                            Nothing
-
-                          threadQueue ->
-                            let
-                              ( nextThread, _ ) =
-                                getNextThread threadQueue
-                            in
-                              Just nextThread
-
-                      Just thread ->
-                        Just thread
-                 in
-                  case thread of
-                    Nothing ->
-                      []
-
-                    Just thread ->
-                      [ div
-                          [ class "row flex-container flex-contained" ]
-                          [ div
-                              [ class "flex-container flex-contained col s12" ]
-                              [ ul
-                                  [ class "grey-text collection with-header flex-scrollable z-depth-1" ]
-                                  <| case thread.journal of
-                                      [] ->
-                                        [ li [ class "collection-item" ] [ text "Nothing logged yet for this task" ] ]
-
-                                      journal ->
-                                        List.map (\journalEntry -> li [ class "collection-item" ] [ text journalEntry ]) journal
-                              ]
-                          ]
-                      ]
-                        ++ case model.thread of
-                            Nothing ->
-                              []
-
-                            Just thread ->
-                              [ div
-                                  [ class "row" ]
-                                  [ div
-                                      [ class "input-field col s9" ]
-                                      [ input
-                                          [ id "input-worklog"
-                                          , value thread.worklog
-                                          , type' "text"
-                                          , on "input" targetValue <| Signal.message address << UpdateWorklog thread
-                                          , onEnter address <| SaveWorklogToJournal thread
-                                          ]
-                                          []
-                                      , label
-                                          [ for "input-worklog" ]
-                                          [ text "Journal entry" ]
-                                      ]
-                                  , div
-                                      [ class "input-field col s3" ]
-                                      [ button
-                                          [ class "waves-effect waves-light btn"
-                                          , type' "submit"
-                                          , onClick address <| SaveWorklogToJournal thread
-                                          ]
-                                          [ text "Log" ]
-                                      ]
-                                  ]
-                              ]
-            )
-        ]
-    ]
 
 
 
