@@ -1,4 +1,7 @@
-module Main (Model, main) where
+port module Main exposing (Model, main)
+
+
+-- module Main (..) where
 
 {-| Multitask OS.
 
@@ -7,10 +10,11 @@ module Main (Model, main) where
 -}
 
 import String
+import Json.Decode
 import Html exposing (..)
+import Html.App as App
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import Native.Main
 
 
 -- MODEL
@@ -49,15 +53,10 @@ type alias Thread =
 
 buildNewModel : Model
 buildNewModel =
-  case Native.Main.retrievePersistedModel () of
-    Just model ->
-      model
-
-    Nothing ->
-      { thread = Nothing
-      , threadQueue = []
-      , newThread = buildNewThread
-      }
+  { thread = Nothing
+  , threadQueue = []
+  , newThread = buildNewThread
+  }
 
 
 buildNewThread : Thread
@@ -172,19 +171,20 @@ type Action
   | SaveWorklogToJournal Thread
 
 
-update : Action -> Model -> Model
+update : Action -> Model -> ( Model, Cmd Action )
 update action model =
   case action of
     NoOp ->
-      model
+      model ! []
 
     ScheduleTask ->
       if String.isEmpty model.newThread.threadName then
-        model
+        model ! []
       else
-        model
+        (model
           |> updateThreadQueue (enqueueThread model.newThread model.threadQueue)
           |> flushNewThread
+        ) ! []
 
     YieldTask ->
       case model.thread of
@@ -192,75 +192,80 @@ update action model =
           Debug.crash "Cannot yield an unexisting task!"
 
         Just thread ->
-          model
+          (model
             |> stopExecutingThread
             |> updateThreadQueue (enqueueThread thread model.threadQueue)
+          ) ! []
 
     FinishTask ->
-      stopExecutingThread model
+      (stopExecutingThread model) ! []
 
     ExecuteNextTask ->
       let
         ( nextThread, restQueue ) =
           getNextThreadFromQueue model.threadQueue
       in
-        model
+        (model
           |> executeThread nextThread
           |> updateThreadQueue restQueue
+        ) ! []
 
     SkipNextTask ->
       let
         ( nextThread, restQueue ) =
           getNextThreadFromQueue model.threadQueue
       in
-        updateThreadQueue (enqueueThread nextThread restQueue) model
+        (updateThreadQueue (enqueueThread nextThread restQueue) model) ! []
 
     DropNextTask ->
       let
         ( _, restQueue ) =
           getNextThreadFromQueue model.threadQueue
       in
-        updateThreadQueue restQueue model
+        (updateThreadQueue restQueue model) ! []
 
     UpdateOpNewThread newOp ->
-      model.newThread
+      (model.newThread
         |> updateCurrentOp newOp
         |> updateNewThread model
+      ) ! []
 
     UpdateWorklog thread worklog ->
-      thread
+      (thread
         |> updateWorklog worklog
         |> updateExecutingThread model
+      ) ! []
 
     SaveWorklogToJournal thread ->
-      thread
+      (thread
         |> saveWorklogToJournal thread.worklog
         |> flushWorklog
         |> updateExecutingThread model
+      ) ! []
 
 
 
 -- VIEW
 
 
-view : Signal.Address Action -> Model -> Html
-view address model =
+view : Model -> Html Action
+view model =
   div
     [ class "container flex-container flex-contained" ]
     [ div
         [ class "row flex-container flex-contained" ]
         [ div
             [ class "col s4 flex-container flex-contained" ]
-            [ taskScheduleForm address model ]
+            [ taskScheduleForm model ]
         , div
             [ class "col s8 flex-container flex-contained" ]
-            <| contextSwitchingWidget address model
+            <| contextSwitchingWidget model
         ]
     ]
 
 
-taskScheduleForm : Signal.Address Action -> Model -> Html
-taskScheduleForm address model =
+taskScheduleForm : Model -> Html Action
+taskScheduleForm model =
   div
     [ class "section" ]
     [ div
@@ -270,8 +275,8 @@ taskScheduleForm address model =
             , class "validate"
             , type' "text"
             , value model.newThread.threadName
-            , on "input" targetValue <| Signal.message address << UpdateOpNewThread
-            , onEnter address ScheduleTask
+            , onInput UpdateOpNewThread
+            , onEnter ScheduleTask
             ]
             []
         , label
@@ -280,24 +285,23 @@ taskScheduleForm address model =
         ]
     , button
         [ class "waves-effect waves-light btn"
-        , onClick address ScheduleTask
+        , onClick ScheduleTask
         ]
         [ text "Schedule" ]
     ]
 
 
-contextSwitchingWidget : Signal.Address Action -> Model -> List Html
-contextSwitchingWidget address model =
+contextSwitchingWidget : Model -> List (Html Action)
+contextSwitchingWidget model =
   [ div
       [ class "row" ]
       [ taskTitle model
-      , contextSwitchingControls address model
+      , contextSwitchingControls model
       ]
-  ]
-    ++ journalWidget address model
+  ] ++ journalWidget model
 
 
-taskTitle : Model -> Html
+taskTitle : Model -> Html Action
 taskTitle model =
   div
     [ class "col s12" ]
@@ -312,8 +316,8 @@ taskTitle model =
           ]
 
 
-contextSwitchingControls : Signal.Address Action -> Model -> Html
-contextSwitchingControls address model =
+contextSwitchingControls : Model -> Html Action
+contextSwitchingControls model =
   div
     [ class "col s12" ]
     <| case model.thread of
@@ -325,7 +329,7 @@ contextSwitchingControls address model =
             threadQueue ->
               [ button
                   [ class "waves-effect waves-light btn"
-                  , onClick address ExecuteNextTask
+                  , onClick ExecuteNextTask
                   ]
                   [ text "Go!" ]
               , button
@@ -333,13 +337,13 @@ contextSwitchingControls address model =
                       [ ( "waves-effect waves-light btn", True )
                       , ( "disabled", List.length threadQueue < 2 )
                       ]
-                   , onClick address SkipNextTask
+                   , onClick SkipNextTask
                    ]
                   )
                   [ text "Skip" ]
               , button
                   [ class "waves-effect waves-light btn"
-                  , onClick address DropNextTask
+                  , onClick DropNextTask
                   ]
                   [ text "Drop" ]
               ]
@@ -347,19 +351,19 @@ contextSwitchingControls address model =
         Just thread ->
           [ button
               [ class "waves-effect waves-light btn"
-              , onClick address YieldTask
+              , onClick YieldTask
               ]
               [ text "Yield" ]
           , button
               [ class "waves-effect waves-light btn"
-              , onClick address FinishTask
+              , onClick FinishTask
               ]
               [ text "Finished" ]
           ]
 
 
-journalWidget : Signal.Address Action -> Model -> List Html
-journalWidget address model =
+journalWidget : Model -> List (Html Action)
+journalWidget model =
   case getNextScheduledThread model of
     Nothing ->
       []
@@ -393,8 +397,8 @@ journalWidget address model =
                           [ id "input-worklog"
                           , value thread.worklog
                           , type' "text"
-                          , on "input" targetValue <| Signal.message address << UpdateWorklog thread
-                          , onEnter address <| SaveWorklogToJournal thread
+                          , onInput <| UpdateWorklog thread
+                          , onEnter <| SaveWorklogToJournal thread
                           ]
                           []
                       , label
@@ -406,7 +410,7 @@ journalWidget address model =
                       [ button
                           [ class "waves-effect waves-light btn"
                           , type' "submit"
-                          , onClick address <| SaveWorklogToJournal thread
+                          , onClick <| SaveWorklogToJournal thread
                           ]
                           [ text "Log" ]
                       ]
@@ -414,16 +418,16 @@ journalWidget address model =
               ]
 
 
-onEnter : Signal.Address Action -> Action -> Attribute
-onEnter address action =
-  onKeyDown address
-    <| \key ->
-        case key of
-          13 ->
-            action
-
-          _ ->
-            NoOp
+onEnter : Action -> Attribute Action
+onEnter action =
+  let
+    tagger code =
+      if code == 13 then
+        action
+      else
+        NoOp
+  in
+    on "keydown" <| Json.Decode.map tagger keyCode
 
 
 
@@ -432,21 +436,27 @@ onEnter address action =
 
 {-| Simple Signal Wiring using an Actions tagged union
 -}
-main : Signal Html
+main : Program (Maybe Model)
 main =
-  Signal.map (view actions.address) model
+  App.programWithFlags
+    { init =
+        \maybeModel ->
+          case maybeModel of
+            Just model ->
+              model ! []
+
+            Nothing ->
+              buildNewModel ! []
+    , view = view
+    , update =
+        \action model ->
+          let
+            ( newModel, cmds ) =
+              update action model
+          in
+            newModel ! [ persistModel newModel, cmds ]
+    , subscriptions = \_ -> Sub.none
+    }
 
 
-port persistModel : Signal Model
-port persistModel =
-  Signal.map Native.Main.persistModel model
-
-
-model : Signal Model
-model =
-  Signal.foldp update buildNewModel actions.signal
-
-
-actions : Signal.Mailbox Action
-actions =
-  Signal.mailbox <| UpdateOpNewThread ""
+port persistModel : Model -> Cmd msg

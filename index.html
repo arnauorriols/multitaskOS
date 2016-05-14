@@ -1,6 +1,5 @@
 <!DOCTYPE HTML>
 <html>
-
 <head>
   <meta charset="UTF-8">
   <title>MultitaskOS</title>
@@ -46,7 +45,6 @@
   }
   </style>
 </head>
-
 <body class="grey lighten-4">
 <header>
     <nav style="float:left">
@@ -61,9 +59,16 @@
     <div id="elm-app" class="flex-container flex-contained"></div>
 </main>
 </body>
-
 <script type="text/javascript">
-Elm.embed(Elm.Main, document.getElementById('elm-app'));
+var STORAGE_KEY = 'multitaskOS-state';
+var storageContent = localStorage.getItem(STORAGE_KEY);
+var savedModel = 
+    storageContent ?
+      JSON.parse(storageContent):
+      null;
+var multitaskos = Elm.Main.embed(document.getElementById('elm-app'), savedModel);
+multitaskos.ports.persistModel.subscribe(function (model) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(model));
+});
 </script>
-
 </html>
