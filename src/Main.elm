@@ -442,6 +442,11 @@ port persistModel =
   Signal.map Native.Main.persistModel model
 
 
+port persistModel2 : Signal Model
+port persistModel2 =
+  model
+
+
 model : Signal Model
 model =
   Signal.foldp update buildNewModel actions.signal

@@ -63,7 +63,11 @@
 </body>
 
 <script type="text/javascript">
-Elm.embed(Elm.Main, document.getElementById('elm-app'));
+var multitaskos = Elm.embed(Elm.Main, document.getElementById('elm-app'));
+var NEW_STORAGE_KEY = 'MultitaskOS-Model';
+multitaskos.ports.persistModel2.subscribe(function (model) {
+        localStorage.setItem(NEW_STORAGE_KEY, JSON.stringify(model));
+});
 </script>
 
 </html>
