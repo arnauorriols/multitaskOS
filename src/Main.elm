@@ -260,7 +260,24 @@ view model =
             [ div [ class "col s4 flex-container flex-contained" ]
                 [ taskScheduleForm model ]
             , div [ class "col s8 flex-container flex-contained" ]
-                <| contextSwitchingWidget model
+                ([ div [ class "row" ]
+                    [ taskTitle model
+                    , contextSwitchingControls model
+                    ]
+                 ]
+                    ++ case getNextScheduledThread model of
+                        Nothing ->
+                            []
+
+                        Just nextThread ->
+                            journalList nextThread
+                                ++ case model.thread of
+                                    Nothing ->
+                                        []
+
+                                    Just activeThread ->
+                                        journalForm activeThread
+                )
             ]
         ]
 
@@ -289,16 +306,6 @@ taskScheduleForm model =
         ]
 
 
-contextSwitchingWidget : Model -> List (Html Action)
-contextSwitchingWidget model =
-    [ div [ class "row" ]
-        [ taskTitle model
-        , contextSwitchingControls model
-        ]
-    ]
-        ++ journalWidget model
-
-
 taskTitle : Model -> Html Action
 taskTitle model =
     div [ class "col s12" ]
@@ -310,6 +317,49 @@ taskTitle model =
                 [ h3 [ class "grey-text text-darken-2" ]
                     [ text thread.threadName ]
                 ]
+
+
+journalList : Thread -> List (Html Action)
+journalList thread =
+    [ div [ class "row flex-container flex-contained" ]
+        [ div [ class "flex-container flex-contained col s12" ]
+            [ ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ]
+                <| case thread.journal of
+                    [] ->
+                        [ li [ class "collection-item" ] [ text "Nothing logged yet for this task" ] ]
+
+                    journal ->
+                        List.map (\journalEntry -> li [ class "collection-item" ] [ text journalEntry ]) journal
+            ]
+        ]
+    ]
+
+
+journalForm : Thread -> List (Html Action)
+journalForm thread =
+    [ div [ class "row" ]
+        [ div [ class "input-field col s9" ]
+            [ input
+                [ id "input-worklog"
+                , value thread.worklog
+                , type' "text"
+                , onInput <| UpdateWorklog thread
+                , onEnter <| SaveWorklogToJournal thread
+                ]
+                []
+            , label [ for "input-worklog" ]
+                [ text "Journal entry" ]
+            ]
+        , div [ class "input-field col s3" ]
+            [ button
+                [ class "waves-effect waves-light btn"
+                , type' "submit"
+                , onClick <| SaveWorklogToJournal thread
+                ]
+                [ text "Log" ]
+            ]
+        ]
+    ]
 
 
 contextSwitchingControls : Model -> Html Action
@@ -355,55 +405,6 @@ contextSwitchingControls model =
                     ]
                     [ text "Finished" ]
                 ]
-
-
-journalWidget : Model -> List (Html Action)
-journalWidget model =
-    case getNextScheduledThread model of
-        Nothing ->
-            []
-
-        Just thread ->
-            [ div [ class "row flex-container flex-contained" ]
-                [ div [ class "flex-container flex-contained col s12" ]
-                    [ ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ]
-                        <| case thread.journal of
-                            [] ->
-                                [ li [ class "collection-item" ] [ text "Nothing logged yet for this task" ] ]
-
-                            journal ->
-                                List.map (\journalEntry -> li [ class "collection-item" ] [ text journalEntry ]) journal
-                    ]
-                ]
-            ]
-                ++ case model.thread of
-                    Nothing ->
-                        []
-
-                    Just thread ->
-                        [ div [ class "row" ]
-                            [ div [ class "input-field col s9" ]
-                                [ input
-                                    [ id "input-worklog"
-                                    , value thread.worklog
-                                    , type' "text"
-                                    , onInput <| UpdateWorklog thread
-                                    , onEnter <| SaveWorklogToJournal thread
-                                    ]
-                                    []
-                                , label [ for "input-worklog" ]
-                                    [ text "Journal entry" ]
-                                ]
-                            , div [ class "input-field col s3" ]
-                                [ button
-                                    [ class "waves-effect waves-light btn"
-                                    , type' "submit"
-                                    , onClick <| SaveWorklogToJournal thread
-                                    ]
-                                    [ text "Log" ]
-                                ]
-                            ]
-                        ]
 
 
 onEnter : Action -> Attribute Action
