@@ -87,16 +87,6 @@ getExecutingJob model =
     model.job
 
 
-isExecutingJob : Model -> Job.Model -> Bool
-isExecutingJob model candidateJob =
-    case model.job of
-        Nothing ->
-            False
-
-        Just executingJob ->
-            executingJob == candidateJob
-
-
 getJobQueue : Model -> JobQueue
 getJobQueue model =
     model.jobQueue
@@ -248,33 +238,66 @@ update action model =
 
 view : Model -> Html Action
 view model =
-    div [ class "container flex-container flex-contained" ]
-        [ div [ class "row flex-container flex-contained" ]
-            [ div [ class "col s4 flex-container flex-contained" ]
-                [ jobScheduleForm model ]
-            , div [ class "col s8 flex-container flex-contained" ]
-                <| [ div [ class "row" ]
-                        [ case getNextScheduledJob model of
-                            Nothing ->
-                                h5 [ class "section grey-text text-lighten-2" ] [ text "Nothing to work on" ]
-
-                            Just nextScheduledJob ->
-                                Html.map ShowJobDetails <| Job.showJobTitle nextScheduledJob
-                        , contextSwitchingControls model
-                        ]
-                   ]
-                ++ case getNextScheduledJob model of
-                    Nothing ->
-                        []
-
-                    Just nextScheduledJob ->
-                        [ Html.map ShowJobDetails <| Job.showJournalList nextScheduledJob ]
-                            ++ if isExecutingJob model nextScheduledJob then
-                                [ Html.map WorkOnJob <| Job.showJournalForm nextScheduledJob ]
-                               else
-                                []
+    viewPort
+        [ sideSection
+            [ jobScheduleForm model ]
+        , mainSection
+            [ nextScheduledJobTitle model
+            , contextSwitchingControls model
+            , nextScheduledJobJournal model
+            , nextScheduledJobWorklogForm model
             ]
         ]
+
+
+viewPort : List (Html Action) -> Html Action
+viewPort elements =
+    div [ class "container flex-container flex-contained" ]
+        [ div [class "row flex-container flex-contained"] elements ]
+
+
+sideSection : List (Html Action) -> Html Action
+sideSection elements =
+    div [ class "col s4 flex-container flex-contained" ] elements
+
+
+mainSection : List (Html Action) -> Html Action
+mainSection elements =
+    div [ class "col s8 flex-container flex-contained" ] elements
+
+
+nextScheduledJobTitle : Model -> Html Action
+nextScheduledJobTitle model =
+    let
+        jobTitle =
+            case getNextScheduledJob model of
+                Nothing ->
+                    h5 [ class "section grey-text text-lighten-2" ] [ text "Nothing to work on" ]
+                Just nextScheduledJob ->
+                    Html.map ShowJobDetails <| Job.showJobTitle nextScheduledJob
+     in
+         div [ class "row" ] [ jobTitle ]
+
+
+nextScheduledJobJournal : Model -> Html Action
+nextScheduledJobJournal model =
+    case getNextScheduledJob model of
+        Nothing ->
+            Html.text ""
+
+        Just nextScheduledJob ->
+            Html.map ShowJobDetails <| Job.showJournalList nextScheduledJob
+
+
+nextScheduledJobWorklogForm : Model -> Html Action
+nextScheduledJobWorklogForm model =
+    case getExecutingJob model of
+        Nothing ->
+            Html.text ""
+
+        Just executingJob ->
+            Html.map WorkOnJob <| Job.showJournalForm executingJob
+
 
 
 jobScheduleForm : Model -> Html Action
