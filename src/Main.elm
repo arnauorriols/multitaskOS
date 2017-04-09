@@ -140,7 +140,7 @@ type Action
     | SkipNextJob
     | DropNextJob
     | NewJob Job.Action
-    | ExecutingJob Job.Action
+    | WorkOnJob Job.Action
     | NextScheduledJob Job.Action
 
 
@@ -229,7 +229,7 @@ update action model =
                     in
                         model ! [ Cmd.map NextScheduledJob cmds ]
 
-        ExecutingJob action ->
+        WorkOnJob action ->
             case getExecutingJob model of
                 Nothing ->
                     model ! []
@@ -239,7 +239,7 @@ update action model =
                         ( updatedExecutingJob, cmds ) =
                             Job.update action executingJob
                     in
-                        updateExecutingJob model updatedExecutingJob ! [ Cmd.map ExecutingJob cmds ]
+                        updateExecutingJob model updatedExecutingJob ! [ Cmd.map WorkOnJob cmds ]
 
 
 
@@ -270,7 +270,7 @@ view model =
                     Just nextScheduledJob ->
                         [ Html.map NextScheduledJob <| Job.showJournalList nextScheduledJob ]
                             ++ if isExecutingJob model nextScheduledJob then
-                                [ Html.map ExecutingJob <| Job.showJournalForm nextScheduledJob ]
+                                [ Html.map WorkOnJob <| Job.showJournalForm nextScheduledJob ]
                                else
                                 []
             ]
