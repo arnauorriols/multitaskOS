@@ -16,12 +16,12 @@ import Job
 -- MODEL
 
 
-{-| There are 3 main entities in our model:
+{-| Our model is conformed by the following elements:
     * job: Job on current execution stack
     * jobQueue: List of queued jobs, waiting for some execution time
     * newJob: Form data to build a new job.
 
-The use flow is roughly summarized as follows:
+The usage flow is roughly summarized as follows:
     1. At the start of the world, there is no job executing or jobs waiting on the jobQueue
     2. An empty job sits in newJob.
     3. The user creates at least one new job. Creating a job means adding a newJob to the jobQueue
@@ -93,29 +93,24 @@ isExecutingJob model candidateJob =
             executingJob == candidateJob
 
 
+getJobQueue : Model -> List Job.Model
+getJobQueue model =
+    model.jobQueue
+
+
 getNextScheduledJob : Model -> Maybe Job.Model
 getNextScheduledJob model =
     case getExecutingJob model of
         Nothing ->
-            case getNextJobFromQueue model.jobQueue of
-                Nothing ->
+            case getJobQueue model of
+                [] ->
                     Nothing
 
-                Just ( nextJob, _ ) ->
-                    Just nextJob
+                nextQueuedJob :: _ ->
+                    Just nextQueuedJob
 
         Just job ->
             Just job
-
-
-getNextJobFromQueue : List Job.Model -> Maybe ( Job.Model, List Job.Model )
-getNextJobFromQueue jobQueue =
-    case jobQueue of
-        [] ->
-            Nothing
-
-        nextJob :: restQueue ->
-            Just ( nextJob, restQueue )
 
 
 enqueueJob : Job.Model -> List Job.Model -> List Job.Model
@@ -177,32 +172,39 @@ update action model =
             (stopExecutingJob model) ! []
 
         ExecuteNextJob ->
-            case getNextJobFromQueue model.jobQueue of
-                Nothing ->
+            case getJobQueue model of
+                [] ->
                     model ! []
 
-                Just ( nextJob, restQueue ) ->
+                nextJob :: restQueue ->
                     (model
                         |> executeJob nextJob
                         |> updateJobQueue restQueue
-                    )
-                        ! []
+                    ) ! []
 
         SkipNextJob ->
-            case getNextJobFromQueue model.jobQueue of
-                Nothing ->
+            case getJobQueue model of
+                [] ->
                     model ! []
 
-                Just ( nextJob, restQueue ) ->
-                    (updateJobQueue (enqueueJob nextJob restQueue) model) ! []
+                nextJob :: restQueue ->
+                    let 
+                        jobQueue =
+                            enqueueJob nextJob restQueue
+                    in
+                        (model
+                            |> updateJobQueue jobQueue
+                        ) ! []
 
         DropNextJob ->
-            case getNextJobFromQueue model.jobQueue of
-                Nothing ->
+            case getJobQueue model of
+                [] ->
                     model ! []
 
-                Just ( _, restQueue ) ->
-                    (updateJobQueue restQueue model) ! []
+                _ :: restQueue ->
+                    (model
+                        |> updateJobQueue restQueue
+                    ) ! []
 
         NewJob action ->
             let
@@ -291,7 +293,7 @@ contextSwitchingControls model =
     div [ class "col s12" ]
         <| case getExecutingJob model of
             Nothing ->
-                case model.jobQueue of
+                case getJobQueue model of
                     [] ->
                         []
 
