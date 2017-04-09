@@ -139,7 +139,7 @@ type Action
     | ExecuteNextJob
     | SkipNextJob
     | DropNextJob
-    | NewJob Job.Action
+    | CreateNewJob Job.Action
     | WorkOnJob Job.Action
     | NextScheduledJob Job.Action
 
@@ -210,12 +210,12 @@ update action model =
                         |> updateJobQueue restQueue
                     ) ! []
 
-        NewJob action ->
+        CreateNewJob action ->
             let
                 ( newJob, cmds ) =
                     Job.update action <| getNewJob model
             in
-                updateNewJob model newJob ! [ Cmd.map NewJob cmds ]
+                updateNewJob model newJob ! [ Cmd.map CreateNewJob cmds ]
 
         NextScheduledJob action ->
             case getNextScheduledJob model of
@@ -283,7 +283,7 @@ jobScheduleForm model =
         [ class "section"
         , onEnter ScheduleJob
         ]
-        [ Html.map NewJob <| Job.showJobForm <| getNewJob model
+        [ Html.map CreateNewJob <| Job.showJobForm <| getNewJob model
         , button
             [ class "waves-effect waves-light btn"
             , onClick ScheduleJob
