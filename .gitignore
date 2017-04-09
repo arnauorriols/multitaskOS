@@ -9,3 +9,4 @@ docs.json
 
 # vim stuff
 *.swp
+node_modules/
