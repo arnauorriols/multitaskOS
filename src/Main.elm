@@ -35,9 +35,13 @@ The usage flow is roughly summarized as follows:
 -}
 type alias Model =
     { job : Maybe Job.Model
-    , jobQueue : List Job.Model
+    , jobQueue : JobQueue
     , newJob : Job.Model
     }
+
+
+type alias JobQueue =
+    List Job.Model
 
 
 init : Model
@@ -93,7 +97,7 @@ isExecutingJob model candidateJob =
             executingJob == candidateJob
 
 
-getJobQueue : Model -> List Job.Model
+getJobQueue : Model -> JobQueue
 getJobQueue model =
     model.jobQueue
 
@@ -113,12 +117,12 @@ getNextScheduledJob model =
             Just job
 
 
-enqueueJob : Job.Model -> List Job.Model -> List Job.Model
+enqueueJob : Job.Model -> JobQueue -> JobQueue
 enqueueJob job jobQueue =
     jobQueue ++ [ job ]
 
 
-updateJobQueue : List Job.Model -> Model -> Model
+updateJobQueue : JobQueue -> Model -> Model
 updateJobQueue jobQueue model =
     { model | jobQueue = jobQueue }
 
