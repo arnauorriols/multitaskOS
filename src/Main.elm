@@ -276,7 +276,7 @@ nextScheduledJobTitle model =
                 Just nextScheduledJob ->
                     Html.map ShowJobDetails <| Job.showJobTitle nextScheduledJob
      in
-         div [ class "row" ] [ jobTitle ]
+         div [] [ jobTitle ]
 
 
 nextScheduledJobJournal : Model -> Html Action
@@ -317,7 +317,7 @@ jobScheduleForm model =
 
 contextSwitchingControls : Model -> Html Action
 contextSwitchingControls model =
-    div [ class "col s12" ]
+    div []
         <| case getExecutingJob model of
             Nothing ->
                 case getJobQueue model of
