@@ -11,16 +11,23 @@ module Job
         , showJournalForm
         )
 
-{-| A Job is an specific task or goal scheduled to be accomplished. 
+{-| A Job is an specific task or goal scheduled to be accomplished.
+
 
 # Model
+
 @docs Model, init, isValid
 
+
 # Business Logic
+
 @docs Action, update
 
+
 # Presentation
+
 @docs showJobTitle, showJobForm, showJournalList, showJournalForm
+
 -}
 
 import String
@@ -32,8 +39,9 @@ import Html.Attributes exposing (..)
 
 -- MODEL
 
+
 {-| A job has a name, a journal, and the possibility to add new entries
-    to the journal by means of a worklog form.
+to the journal by means of a worklog form.
 -}
 type alias Model =
     { threadName : String
@@ -42,7 +50,8 @@ type alias Model =
     }
 
 
-{-| Create a new empty Job -}
+{-| Create a new empty Job
+-}
 init : Model
 init =
     { threadName = ""
@@ -74,7 +83,8 @@ flushWorklog model =
     { model | worklog = "" }
 
 
-{-| Assert the Job is valid and can be scheduled -}
+{-| Assert the Job is valid and can be scheduled
+-}
 isValid : Model -> Bool
 isValid model =
     not (String.isEmpty model.threadName)
@@ -84,7 +94,8 @@ isValid model =
 -- UPDATE
 
 
-{-| Possible actions that can occur on a job -}
+{-| Possible actions that can occur on a job
+-}
 type Action
     = NoOp
     | UpdateName String
@@ -92,7 +103,8 @@ type Action
     | SaveWorklogToJournal
 
 
-{-| Handle incoming @docs Action -}
+{-| Handle incoming @docs Action
+-}
 update : Action -> Model -> ( Model, Cmd Action )
 update action model =
     case action of
@@ -117,7 +129,8 @@ update action model =
 -- VIEW
 
 
-{-| Present the form for creating new jobs -}
+{-| Present the form for creating new jobs
+-}
 showJobForm : Model -> Html Action
 showJobForm model =
     div [ class "input-field" ]
@@ -134,24 +147,28 @@ showJobForm model =
         ]
 
 
-{-| Present the title of a job -}
+{-| Present the title of a job
+-}
 showJobTitle : Model -> Html Action
 showJobTitle model =
     h3 [ class "grey-text text-darken-2" ] [ text model.threadName ]
 
 
-{-| Present the list of journal entries of a job -}
+{-| Present the list of journal entries of a job
+-}
 showJournalList : Model -> Html Action
 showJournalList model =
-    ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ]
-        <| case model.journal of
+    ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
+        case model.journal of
             [] ->
                 [ li [ class "collection-item" ] [ text "Nothing logged yet for this job" ] ]
 
             journal ->
                 List.map (\journalEntry -> li [ class "collection-item" ] [ text journalEntry ]) journal
 
-{-| Present the form to add new entried to the job's journal -}
+
+{-| Present the form to add new entried to the job's journal
+-}
 showJournalForm : Model -> Html Action
 showJournalForm model =
     div [ class "row" ]
