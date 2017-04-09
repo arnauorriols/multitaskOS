@@ -141,7 +141,7 @@ type Action
     | DropNextJob
     | CreateNewJob Job.Action
     | WorkOnJob Job.Action
-    | NextScheduledJob Job.Action
+    | ShowJobDetails Job.Action
 
 
 update : Action -> Model -> ( Model, Cmd Action )
@@ -217,7 +217,7 @@ update action model =
             in
                 updateNewJob model newJob ! [ Cmd.map CreateNewJob cmds ]
 
-        NextScheduledJob action ->
+        ShowJobDetails action ->
             case getNextScheduledJob model of
                 Nothing ->
                     model ! []
@@ -227,7 +227,7 @@ update action model =
                         ( updatedNextScheduledJob, cmds ) =
                             Job.update action nextScheduledJob
                     in
-                        model ! [ Cmd.map NextScheduledJob cmds ]
+                        model ! [ Cmd.map ShowJobDetails cmds ]
 
         WorkOnJob action ->
             case getExecutingJob model of
@@ -259,7 +259,7 @@ view model =
                                 h5 [ class "section grey-text text-lighten-2" ] [ text "Nothing to work on" ]
 
                             Just nextScheduledJob ->
-                                Html.map NextScheduledJob <| Job.showJobTitle nextScheduledJob
+                                Html.map ShowJobDetails <| Job.showJobTitle nextScheduledJob
                         , contextSwitchingControls model
                         ]
                    ]
@@ -268,7 +268,7 @@ view model =
                         []
 
                     Just nextScheduledJob ->
-                        [ Html.map NextScheduledJob <| Job.showJournalList nextScheduledJob ]
+                        [ Html.map ShowJobDetails <| Job.showJournalList nextScheduledJob ]
                             ++ if isExecutingJob model nextScheduledJob then
                                 [ Html.map WorkOnJob <| Job.showJournalForm nextScheduledJob ]
                                else
