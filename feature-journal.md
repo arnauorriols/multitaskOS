@@ -12,3 +12,5 @@
 10. I can use enter to schedule new tasks or save worklog to journal
 11. I can drop a task when prompted to start working on it
 12. When restarting the browser, I want to keep working where I left
+13. I can use the app as a chrome-extension
+14. I can automatically open the chrome popup using a shortkey
