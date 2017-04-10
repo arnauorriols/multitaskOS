@@ -3,16 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <title>MultitaskOS</title>
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/css/materialize.min.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.97.6/js/materialize.min.js"></script>
+  <script type="text/javascript" src="vendor/jquery-2.1.1.min.js"></script>
+
+  <link href="vendor/material-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="vendor/materialize/0.98.1/css/materialize.min.css">
+  <script src="vendor/materialize/0.98.1/js/materialize.min.js"></script>
+
   <script type="text/javascript" src="App.js"></script>
+  <script type="text/javascript" src="app-bootstrap.js"></script>
   <style>
+  @media (max-width: 300px) and (max-height: 60px) {
+      /* hypothesis: Chrome extension popup */
+      body {
+          min-width: 800px;
+          min-height: 600px;
+      }
+  }
+
   body {
     height: 100vh;
+    width: 100vw;
   }
+
 
   button {
     margin-top: 0.2em;
@@ -56,27 +69,4 @@
     <div id="elm-app" class="flex-container flex-contained"></div>
 </main>
 </body>
-<script type="text/javascript">
-function compat(model) {
-    for (props of [['thread', 'job'], ['threadQueue', 'jobQueue'], ['newThread', 'newJob']]) {
-        var oldProp = props[0];
-        var newProp = props[1];
-        if (model.hasOwnProperty(oldProp)) {
-            model[newProp] = model[oldProp];
-            delete model[oldProp];
-        }
-    }
-    return model;
-}
-var STORAGE_KEY = 'MultitaskOS-Model';
-var storageContent = localStorage.getItem(STORAGE_KEY);
-var savedModel = 
-    storageContent ?
-      compat(JSON.parse(storageContent)):
-      null;
-var multitaskos = Elm.Main.embed(document.getElementById('elm-app'), savedModel);
-multitaskos.ports.persistModel.subscribe(function (model) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(model));
-});
-</script>
 </html>

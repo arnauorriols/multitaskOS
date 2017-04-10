@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+
+  "name": "MultitaskOS",
+  "description": "Let the machine do what it does best and we do worst",
+  "version": "0.0.0",
+
+  "browser_action": {
+    "default_popup": "index.html"
+  },
+
+  "permissions": [
+    "activeTab"
+  ]
+}
