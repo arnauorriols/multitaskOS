@@ -27,6 +27,7 @@ init =
 type Hotkey
     = N
     | S
+    | G
 
 
 fromChar : Char -> Maybe Hotkey
@@ -37,6 +38,9 @@ fromChar char =
 
         's' ->
             Just S
+
+        'g' ->
+            Just G
 
         _ ->
             Nothing

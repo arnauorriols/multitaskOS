@@ -15,3 +15,4 @@
 13. I can use the app as a chrome-extension
 14. I can automatically open the chrome popup using a shortkey
 15. I can create a new job using only the keyboard
+16. I can start working on a job using only the keyboard

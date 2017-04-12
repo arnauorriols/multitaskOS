@@ -250,13 +250,22 @@ update action model =
 
         HotkeyTriggered hotkey ->
             let
-                newJobHotkey =
-                    Job.newJobHotkey
-
                 nextAction =
                     case hotkey of
-                        newJobHotkey ->
+                        Hotkey.N ->
                             CreateNewJob Job.newJobHotkeyAction
+
+                        Hotkey.G ->
+                            case getExecutingJob model of
+                                Nothing ->
+                                    ExecuteNextJob
+
+                                _ ->
+                                    NoOp
+
+                        _ ->
+                            NoOp
+
             in
                 model ! []
                     |> Update.Extra.andThen update nextAction
