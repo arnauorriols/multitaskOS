@@ -8,6 +8,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 delete model[oldProp];
             }
         }
+        for (prop of [['hotkeysPressed', []]]) {
+            var key = prop[0];
+            var value = prop[1];
+            if (!model.hasOwnProperty(prop)) {
+              model[key] = value;
+            }
+        }
         return model;
     }
     var STORAGE_KEY = 'MultitaskOS-Model';
