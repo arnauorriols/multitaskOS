@@ -279,6 +279,9 @@ update action model =
                         Hotkey.R ->
                             DropNextJob
 
+                        Hotkey.C ->
+                            FinishJob
+
             in
                 model ! []
                     |> Update.Extra.andThen update nextAction

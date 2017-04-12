@@ -19,3 +19,4 @@
 17. I can yield an active job using only the keyboard
 18. I can skip a job using only the keyboard
 19. I can drop a job using only the keyboard
+20. I can finish an active job using only the keyboard
