@@ -18,3 +18,4 @@
 16. I can start working on a job using only the keyboard
 17. I can yield an active job using only the keyboard
 18. I can skip a job using only the keyboard
+19. I can drop a job using only the keyboard

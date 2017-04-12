@@ -216,14 +216,18 @@ update action model =
                     model ! []
 
         DropNextJob ->
-            case getJobQueue model of
-                [] ->
-                    model ! []
+            case getExecutingJob model of
+                Nothing ->
+                    case getJobQueue model of
+                        [] ->
+                            model ! []
 
-                _ :: restQueue ->
-                    (model
-                        |> updateJobQueue restQueue
-                    ) ! []
+                        _ :: restQueue ->
+                            (model
+                                |> updateJobQueue restQueue
+                            ) ! []
+                _ ->
+                    model ! []
 
         CreateNewJob action ->
             let
@@ -271,6 +275,9 @@ update action model =
 
                         Hotkey.S ->
                             SkipNextJob
+
+                        Hotkey.R ->
+                            DropNextJob
 
             in
                 model ! []
