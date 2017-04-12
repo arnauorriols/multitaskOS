@@ -28,6 +28,7 @@ type Hotkey
     = N
     | S
     | G
+    | Y
 
 
 fromChar : Char -> Maybe Hotkey
@@ -41,6 +42,9 @@ fromChar char =
 
         'g' ->
             Just G
+
+        'y' ->
+            Just Y
 
         _ ->
             Nothing
