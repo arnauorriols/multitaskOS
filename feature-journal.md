@@ -14,3 +14,4 @@
 12. When restarting the browser, I want to keep working where I left
 13. I can use the app as a chrome-extension
 14. I can automatically open the chrome popup using a shortkey
+15. I can create a new job using only the keyboard

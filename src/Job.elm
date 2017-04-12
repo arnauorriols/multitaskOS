@@ -5,6 +5,8 @@ module Job
         , init
         , isValid
         , update
+        , newJobHotkey
+        , newJobHotkeyAction
         , showJobForm
         , showJobTitle
         , showJournalList
@@ -21,7 +23,7 @@ module Job
 
 # Business Logic
 
-@docs Action, update
+@docs Action, update, newJobHotkeyAction, newJobHotkey
 
 
 # Presentation
@@ -35,6 +37,9 @@ import Json.Decode
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import Dom
+import Task
+import Hotkey
 
 
 -- MODEL
@@ -101,6 +106,22 @@ type Action
     | UpdateName String
     | UpdateWorklog String
     | SaveWorklogToJournal
+    | FocusNewJobForm
+    | FocusNewJobFormResult (Result Dom.Error ())
+
+
+{-| Hotkey used for focusing  to the new job form
+-}
+newJobHotkey : Hotkey.Hotkey
+newJobHotkey =
+    Hotkey.N
+
+
+{-| Action used when the newJobHotkey is triggered
+-}
+newJobHotkeyAction : Action
+newJobHotkeyAction =
+    FocusNewJobForm
 
 
 {-| Handle incoming @docs Action
@@ -124,6 +145,24 @@ update action model =
             )
                 ! []
 
+        FocusNewJobForm ->
+            let
+                focusTask =
+                    Dom.focus "input-job-name" 
+            in 
+                model ! [ Task.attempt FocusNewJobFormResult focusTask ]
+
+        FocusNewJobFormResult result ->
+            case result of
+                Err (Dom.NotFound id) ->
+                    let
+                        _ =
+                            Debug.log "Element was not found, thus cound not be focused" id
+                    in
+                        model ! []
+                Ok () ->
+                    model ! []
+
 
 
 -- VIEW
@@ -135,14 +174,14 @@ showJobForm : Model -> Html Action
 showJobForm model =
     div [ class "input-field" ]
         [ input
-            [ id "input-thread-name"
+            [ id "input-job-name"
             , class "validate"
             , type_ "text"
             , value model.threadName
             , onInput UpdateName
             ]
             []
-        , label [ for "input-thread-name" ]
+        , label [ for "input-job-name" ]
             [ text "Job title" ]
         ]
 

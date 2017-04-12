@@ -10,7 +10,10 @@ import Json.Decode
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import Update.Extra
+
 import Job
+import Hotkey
 
 
 -- MODEL
@@ -37,6 +40,7 @@ type alias Model =
     { job : Maybe Job.Model
     , jobQueue : JobQueue
     , newJob : Job.Model
+    , hotkeysPressed: Hotkey.Model
     }
 
 
@@ -49,6 +53,7 @@ init =
     { job = Nothing
     , jobQueue = []
     , newJob = Job.init
+    , hotkeysPressed = Hotkey.init
     }
 
 
@@ -117,6 +122,16 @@ updateJobQueue jobQueue model =
     { model | jobQueue = jobQueue }
 
 
+getHotkeysPressed : Model -> Hotkey.Model
+getHotkeysPressed model =
+    model.hotkeysPressed
+
+
+updateHotkeysPressed : Hotkey.Model -> Model -> Model
+updateHotkeysPressed hotkeysPressed model =
+    { model | hotkeysPressed = hotkeysPressed }
+
+
 
 -- UPDATE
 
@@ -132,6 +147,8 @@ type Action
     | CreateNewJob Job.Action
     | WorkOnJob Job.Action
     | ShowJobDetails Job.Action
+    | HotkeyAction Hotkey.Action
+    | HotkeyTriggered Hotkey.Hotkey
 
 
 update : Action -> Model -> ( Model, Cmd Action )
@@ -230,6 +247,36 @@ update action model =
                             Job.update action executingJob
                     in
                         updateExecutingJob model updatedExecutingJob ! [ Cmd.map WorkOnJob cmds ]
+
+        HotkeyTriggered hotkey ->
+            let
+                newJobHotkey =
+                    Job.newJobHotkey
+
+                nextAction =
+                    case hotkey of
+                        newJobHotkey ->
+                            CreateNewJob Job.newJobHotkeyAction
+            in
+                model ! []
+                    |> Update.Extra.andThen update nextAction
+
+        HotkeyAction action ->
+            let
+                (hotkeysPressed, hotkeyTriggered) =
+                        Hotkey.update action <| getHotkeysPressed model
+
+                modelUpdated =
+                    updateHotkeysPressed hotkeysPressed model
+            in
+                case hotkeyTriggered of
+                    Just hotkey ->
+                        modelUpdated ! []
+                            |> Update.Extra.andThen update (HotkeyTriggered hotkey)
+
+                    Nothing ->
+                        modelUpdated ! []
+
 
 
 
@@ -372,6 +419,11 @@ onEnter action =
         on "keydown" <| Json.Decode.map tagger keyCode
 
 
+subscriptions : Model -> Sub Action
+subscriptions model =
+    Sub.map HotkeyAction Hotkey.subscriptions
+
+
 
 -- WIRING
 
@@ -397,7 +449,7 @@ main =
                         update action model
                 in
                     newModel ! [ persistModel newModel, cmds ]
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         }
 
 
