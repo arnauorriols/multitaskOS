@@ -198,18 +198,22 @@ update action model =
                     model ! []
 
         SkipNextJob ->
-            case getJobQueue model of
-                [] ->
-                    model ! []
+            case getExecutingJob model of
+                Nothing ->
+                    case getJobQueue model of
+                        [] ->
+                            model ! []
 
-                nextJob :: restQueue ->
-                    let 
-                        jobQueue =
-                            enqueueJob nextJob restQueue
-                    in
-                        (model
-                            |> updateJobQueue jobQueue
-                        ) ! []
+                        nextJob :: restQueue ->
+                            let 
+                                jobQueue =
+                                    enqueueJob nextJob restQueue
+                            in
+                                (model
+                                    |> updateJobQueue jobQueue
+                                ) ! []
+                _ ->
+                    model ! []
 
         DropNextJob ->
             case getJobQueue model of
@@ -265,8 +269,8 @@ update action model =
                         Hotkey.Y ->
                             YieldJob
 
-                        _ ->
-                            NoOp
+                        Hotkey.S ->
+                            SkipNextJob
 
             in
                 model ! []
