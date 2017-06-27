@@ -221,8 +221,8 @@ focusWorklogForm =
 
 {-| Present the form for creating new jobs
 -}
-viewTitleForm : Model -> Html Msg
-viewTitleForm model =
+viewTitleForm : String -> Model -> Html Msg
+viewTitleForm placeholder model =
     div [ class "input-field" ]
         [ input
             [ id "input-title"
@@ -233,7 +233,7 @@ viewTitleForm model =
             ]
             []
         , label [ for "input-title" ]
-            [ text "Job title" ]
+            [ text placeholder ]
         ]
 
 
@@ -259,8 +259,8 @@ viewWorklog model =
 
 {-| Present the form to add new entried to the job's journal
 -}
-viewWorklogForm : Model -> Html Msg
-viewWorklogForm { worklog } =
+viewWorklogForm : String -> Model -> Html Msg
+viewWorklogForm buttonText { worklog } =
     div [ class "row" ]
         [ div [ class "input-field col s9" ]
             [ input
@@ -280,7 +280,7 @@ viewWorklogForm { worklog } =
                 , type_ "submit"
                 , onClick (Worklog Add)
                 ]
-                [ text "Log" ]
+                [ text buttonText ]
             ]
         ]
 

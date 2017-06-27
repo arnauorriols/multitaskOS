@@ -31,6 +31,7 @@ type Hotkey
     | Y
     | R
     | C
+    | H
 
 
 fromChar : Char -> Maybe Hotkey
@@ -53,6 +54,9 @@ fromChar char =
 
         'c' ->
             Just C
+
+        'h' ->
+            Just H
 
         _ ->
             Nothing

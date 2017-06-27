@@ -26,6 +26,7 @@ type alias Model =
     { jobQueue : JobQueue
     , unsavedJob : Job.Model
     , hotkeysPressed : Hotkey.Model
+    , hintsStatus : HotkeyHintStatus
     }
 
 
@@ -38,11 +39,27 @@ type alias JobQueue =
     List ( JobStatus, Job.Model )
 
 
+type HotkeyHintStatus
+    = Shown
+    | Hidden
+
+
+hotkeyHintOrReal : HotkeyHintStatus -> String -> String -> String
+hotkeyHintOrReal hotkeyHintStatus hotkeyHint realText =
+    case hotkeyHintStatus of
+        Shown ->
+            hotkeyHint
+
+        Hidden ->
+            realText
+
+
 init : Model
 init =
     { jobQueue = []
     , unsavedJob = Job.init
     , hotkeysPressed = Hotkey.init
+    , hintsStatus = Hidden
     }
 
 
@@ -99,11 +116,12 @@ decoder =
                     (Json.Decode.index 1 Job.decoder)
                 )
     in
-        Json.Decode.map3
+        Json.Decode.map4
             Model
             (Json.Decode.field "jobQueue" jobQueueDecoder)
             (Json.Decode.field "unsavedJob" Job.decoder)
             (Json.Decode.succeed Hotkey.init)
+            (Json.Decode.succeed Hidden)
 
 
 decodeValue : Json.Encode.Value -> Model
@@ -125,8 +143,7 @@ type Msg
     | UnsavedJob UnsavedJobMsg
     | NextJob NextJobMsg
     | ActiveJob ActiveJobMsg
-    | HotkeyMsg Hotkey.Msg
-    | HotkeyTriggered Hotkey.Hotkey
+    | Hotkey HotkeyMsg
 
 
 type UnsavedJobMsg
@@ -145,6 +162,13 @@ type ActiveJobMsg
     = Yield
     | Finish
     | ActiveJobMsg Job.Msg
+
+
+type HotkeyMsg
+    = ShowHints
+    | HideHints
+    | HotkeyMsg Hotkey.Msg
+    | Triggered Hotkey.Hotkey
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -248,7 +272,13 @@ update action model =
                 _ ->
                     ( model, Cmd.none )
 
-        HotkeyTriggered hotkey ->
+        Hotkey ShowHints ->
+            ( { model | hintsStatus = Shown }, Cmd.none )
+
+        Hotkey HideHints ->
+            ( { model | hintsStatus = Hidden }, Cmd.none )
+
+        Hotkey (Triggered hotkey) ->
             let
                 nextMsg =
                     case hotkey of
@@ -269,10 +299,18 @@ update action model =
 
                         Hotkey.C ->
                             ActiveJob Finish
+
+                        Hotkey.H ->
+                            case model.hintsStatus of
+                                Shown ->
+                                    Hotkey HideHints
+
+                                Hidden ->
+                                    Hotkey ShowHints
             in
                 ( model, Cmd.none ) |> Update.Extra.andThen update nextMsg
 
-        HotkeyMsg action ->
+        Hotkey (HotkeyMsg action) ->
             let
                 ( hotkeysPressed, hotkeyTriggered ) =
                     Hotkey.update action model.hotkeysPressed
@@ -283,7 +321,7 @@ update action model =
                 case hotkeyTriggered of
                     Just hotkey ->
                         ( modelUpdated, Cmd.none )
-                            |> Update.Extra.andThen update (HotkeyTriggered hotkey)
+                            |> Update.Extra.andThen update (Hotkey (Triggered hotkey))
 
                     Nothing ->
                         ( modelUpdated, Cmd.none )
@@ -297,7 +335,9 @@ view : Model -> Html Msg
 view model =
     viewPort
         [ sideSection
-            [ viewNewJobForm model ]
+            [ viewNewJobForm model
+            , viewHotkeyHintsToggle model
+            ]
         , mainSection
             [ viewNextScheduledJobTitle model
             , viewContextSwitchingControls model
@@ -351,7 +391,11 @@ viewActiveJobWorklogForm : Model -> Html Msg
 viewActiveJobWorklogForm model =
     case List.head model.jobQueue of
         Just ( Active, job ) ->
-            Job.viewWorklogForm job |> Html.map (ActiveJobMsg >> ActiveJob)
+            let
+                submitButtonText =
+                    hotkeyHintOrReal model.hintsStatus "Enter" "Add"
+            in
+                Job.viewWorklogForm submitButtonText job |> Html.map (ActiveJobMsg >> ActiveJob)
 
         _ ->
             Html.text ""
@@ -359,16 +403,47 @@ viewActiveJobWorklogForm model =
 
 viewNewJobForm : Model -> Html Msg
 viewNewJobForm model =
-    div
-        [ class "section"
-        , onEnter (UnsavedJob Save)
-        ]
-        [ Job.viewTitleForm model.unsavedJob |> Html.map (UnsavedJobMsg >> UnsavedJob)
-        , button
-            [ class "waves-effect waves-light btn"
-            , onClick (UnsavedJob Save)
+    let
+        placeholder =
+            hotkeyHintOrReal model.hintsStatus "Alt+N" "Job title"
+    in
+        div
+            [ class "section"
+            , onEnter (UnsavedJob Save)
             ]
-            [ text "Schedule" ]
+            [ Job.viewTitleForm placeholder model.unsavedJob |> Html.map (UnsavedJobMsg >> UnsavedJob)
+            , button
+                [ class "waves-effect waves-light btn"
+                , onClick (UnsavedJob Save)
+                ]
+                [ text (hotkeyHintOrReal model.hintsStatus "Enter" "Schedule") ]
+            ]
+
+
+viewHotkeyHintsToggle : Model -> Html Msg
+viewHotkeyHintsToggle model =
+    div
+        [ class "fixed-action-btn"
+        , style
+            [ ( "left", "23px" )
+            , ( "right", "auto" )
+            ]
+        ]
+        [ i
+            [ class "material-icons"
+            , style [ ( "cursor", "pointer" ) ]
+            , onMouseDown (Hotkey ShowHints)
+            , onMouseUp (Hotkey HideHints)
+            ]
+            [ text "info_outline" ]
+        , span
+            [ style
+                [ ( "font-size", "0.8em" )
+                , ( "vertical-align", "super" )
+                , ( "margin-left", "3px" )
+                ]
+            ]
+            [ text (hotkeyHintOrReal model.hintsStatus "Alt+H" "") ]
         ]
 
 
@@ -383,12 +458,12 @@ viewContextSwitchingControls model =
                             [ class "waves-effect waves-light btn"
                             , onClick (ActiveJob Yield)
                             ]
-                            [ text "Yield" ]
+                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Yield") ]
                         , button
                             [ class "waves-effect waves-light btn"
                             , onClick (ActiveJob Finish)
                             ]
-                            [ text "Finished" ]
+                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finished") ]
                         ]
 
                     Queued ->
@@ -396,7 +471,7 @@ viewContextSwitchingControls model =
                             [ class "waves-effect waves-light btn"
                             , onClick (NextJob Execute)
                             ]
-                            [ text "Go!" ]
+                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+G" "Go!") ]
                         , button
                             ([ classList
                                 [ ( "waves-effect waves-light btn", True )
@@ -405,12 +480,12 @@ viewContextSwitchingControls model =
                              , onClick (NextJob Skip)
                              ]
                             )
-                            [ text "Skip" ]
+                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+S" "Skip") ]
                         , button
                             [ class "waves-effect waves-light btn"
                             , onClick (NextJob Drop)
                             ]
-                            [ text "Drop" ]
+                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+R" "Drop") ]
                         ]
 
             Nothing ->
@@ -431,7 +506,7 @@ onEnter action =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map HotkeyMsg Hotkey.subscriptions
+    Sub.map (HotkeyMsg >> Hotkey) Hotkey.subscriptions
 
 
 

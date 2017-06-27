@@ -48,9 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
 				if (model.jobQueue.length && !(model.jobQueue[0] instanceof Array)) {
 					  model.jobQueue = model.jobQueue.map((job) => ["Queued", job]);
 				}
-				console.log(model.jobQueue);
-				console.log(model.jobQueue[0]);
-				console.log(model.jobQueue[0] instanceof Array);
 
 			  if (model.hasOwnProperty('hotkeysPressed')) {
 						delete model.hotkeysPressed;
