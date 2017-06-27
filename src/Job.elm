@@ -1,16 +1,18 @@
 module Job
     exposing
         ( Model
-        , Action
+        , Msg
         , init
+        , encode
+        , decoder
         , isValid
         , update
-        , newJobHotkey
-        , newJobHotkeyAction
-        , showJobForm
-        , showJobTitle
-        , showJournalList
-        , showJournalForm
+        , focusTitleForm
+        , focusWorklogForm
+        , viewTitle
+        , viewTitleForm
+        , viewWorklog
+        , viewWorklogForm
         )
 
 {-| A Job is an specific task or goal scheduled to be accomplished.
@@ -18,28 +20,29 @@ module Job
 
 # Model
 
-@docs Model, init, isValid
+@docs Model, init, encode, decoder, isValid
 
 
 # Business Logic
 
-@docs Action, update, newJobHotkeyAction, newJobHotkey
+@docs Msg, update, focusTitleForm, focusWorklogForm
 
 
 # Presentation
 
-@docs showJobTitle, showJobForm, showJournalList, showJournalForm
+@docs viewTitle, viewTitleForm, viewWorklog, viewWorklogForm
 
 -}
 
 import String
 import Json.Decode
+import Json.Encode
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import List.Extra
 import Dom
 import Task
-import Hotkey
 
 
 -- MODEL
@@ -49,50 +52,93 @@ import Hotkey
 to the journal by means of a worklog form.
 -}
 type alias Model =
-    { threadName : String
-    , worklog : String
-    , journal : List String
+    { title : String
+    , worklog : Worklog
     }
+
+
+type alias Worklog =
+    List WorklogEntry
+
+
+type alias WorklogEntry =
+    String
 
 
 {-| Create a new empty Job
 -}
 init : Model
 init =
-    { threadName = ""
-    , worklog = ""
-    , journal = []
+    { title = ""
+    , worklog = initWorklog
     }
 
 
-updateName : String -> Model -> Model
-updateName newName model =
-    { model | threadName = newName }
+{-| Encode a job model
+-}
+encode : Model -> Json.Encode.Value
+encode model =
+    Json.Encode.object
+        [ ( "title", Json.Encode.string model.title )
+        , ( "worklog", Json.Encode.list (List.map Json.Encode.string model.worklog) )
+        ]
 
 
-updateWorklog : String -> Model -> Model
-updateWorklog newWorklog model =
-    { model | worklog = newWorklog }
-
-
-saveWorklogToJournal : Model -> Model
-saveWorklogToJournal model =
-    if String.isEmpty model.worklog then
-        model
-    else
-        { model | journal = model.journal ++ [ model.worklog ] }
-
-
-flushWorklog : Model -> Model
-flushWorklog model =
-    { model | worklog = "" }
+{-| Decode a job model
+-}
+decoder : Json.Decode.Decoder Model
+decoder =
+    Json.Decode.map2
+        Model
+        (Json.Decode.field "title" Json.Decode.string)
+        (Json.Decode.field "worklog" (Json.Decode.list Json.Decode.string))
 
 
 {-| Assert the Job is valid and can be scheduled
 -}
 isValid : Model -> Bool
 isValid model =
-    not (String.isEmpty model.threadName)
+    not (String.isEmpty model.title)
+
+
+initWorklog : Worklog
+initWorklog =
+    []
+
+
+initWorklogEntry : WorklogEntry
+initWorklogEntry =
+    ""
+
+
+savedWorklog : Worklog -> Worklog
+savedWorklog worklog =
+    case List.tail worklog of
+        Just w ->
+            w
+
+        Nothing ->
+            []
+
+
+unsavedWorklogEntry : Worklog -> WorklogEntry
+unsavedWorklogEntry worklog =
+    case List.head worklog of
+        Just e ->
+            e
+
+        Nothing ->
+            initWorklogEntry
+
+
+editWorklogEntry : Int -> WorklogEntry -> Worklog -> Worklog
+editWorklogEntry index worklogEntry worklog =
+    case List.Extra.setAt index worklogEntry worklog of
+        Just newWorklog ->
+            newWorklog
+
+        Nothing ->
+            worklogEntry :: worklog
 
 
 
@@ -101,67 +147,72 @@ isValid model =
 
 {-| Possible actions that can occur on a job
 -}
-type Action
+type Msg
     = NoOp
-    | UpdateName String
-    | UpdateWorklog String
-    | SaveWorklogToJournal
-    | FocusNewJobForm
-    | FocusNewJobFormResult (Result Dom.Error ())
+    | EditTitle String
+    | Worklog WorklogMsg
+    | Focus FocusMsg
 
 
-{-| Hotkey used for focusing  to the new job form
+type WorklogMsg
+    = Add
+    | Edit Int WorklogEntry
+
+
+type FocusMsg
+    = Attempt String
+    | Result (Result Dom.Error ())
+
+
+{-| Handle incoming @docs Msg
 -}
-newJobHotkey : Hotkey.Hotkey
-newJobHotkey =
-    Hotkey.N
-
-
-{-| Action used when the newJobHotkey is triggered
--}
-newJobHotkeyAction : Action
-newJobHotkeyAction =
-    FocusNewJobForm
-
-
-{-| Handle incoming @docs Action
--}
-update : Action -> Model -> ( Model, Cmd Action )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
         NoOp ->
-            model ! []
+            ( model, Cmd.none )
 
-        UpdateName newName ->
-            updateName newName model ! []
-
-        UpdateWorklog newWorklog ->
-            updateWorklog newWorklog model ! []
-
-        SaveWorklogToJournal ->
-            (model
-                |> saveWorklogToJournal
-                |> flushWorklog
-            )
-                ! []
-
-        FocusNewJobForm ->
+        Focus (Attempt elementId) ->
             let
                 focusTask =
-                    Dom.focus "input-job-name" 
-            in 
-                model ! [ Task.attempt FocusNewJobFormResult focusTask ]
+                    Dom.focus elementId
+            in
+                ( model, Task.attempt (Result >> Focus) focusTask )
 
-        FocusNewJobFormResult result ->
+        Focus (Result result) ->
             case result of
                 Err (Dom.NotFound id) ->
                     let
                         _ =
-                            Debug.log "Element was not found, thus cound not be focused" id
+                            Debug.log "Element was not found, thus could not be focused" id
                     in
-                        model ! []
+                        ( model, Cmd.none )
+
                 Ok () ->
-                    model ! []
+                    ( model, Cmd.none )
+
+        EditTitle newTitle ->
+            ( { model | title = newTitle }, Cmd.none )
+
+        Worklog Add ->
+            ( { model | worklog = initWorklogEntry :: model.worklog }, Cmd.none )
+
+        Worklog (Edit index worklogEntry) ->
+            ( { model | worklog = editWorklogEntry index worklogEntry model.worklog }, Cmd.none )
+
+
+{-| Focus the input field to enter the title of a new job
+-}
+focusTitleForm : Msg
+focusTitleForm =
+    Focus (Attempt "input-title")
+
+
+{-| Focus the input field to enter a new worklog entry
+-}
+focusWorklogForm : Msg
+focusWorklogForm =
+    Focus (Attempt "input-worklog")
 
 
 
@@ -170,54 +221,54 @@ update action model =
 
 {-| Present the form for creating new jobs
 -}
-showJobForm : Model -> Html Action
-showJobForm model =
+viewTitleForm : Model -> Html Msg
+viewTitleForm model =
     div [ class "input-field" ]
         [ input
-            [ id "input-job-name"
+            [ id "input-title"
             , class "validate"
             , type_ "text"
-            , value model.threadName
-            , onInput UpdateName
+            , value model.title
+            , onInput EditTitle
             ]
             []
-        , label [ for "input-job-name" ]
+        , label [ for "input-title" ]
             [ text "Job title" ]
         ]
 
 
 {-| Present the title of a job
 -}
-showJobTitle : Model -> Html Action
-showJobTitle model =
-    h3 [ class "grey-text text-darken-2" ] [ text model.threadName ]
+viewTitle : Model -> Html Msg
+viewTitle model =
+    h3 [ class "grey-text text-darken-2" ] [ text model.title ]
 
 
 {-| Present the list of journal entries of a job
 -}
-showJournalList : Model -> Html Action
-showJournalList model =
+viewWorklog : Model -> Html Msg
+viewWorklog model =
     ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
-        case model.journal of
+        case savedWorklog model.worklog of
             [] ->
                 [ li [ class "collection-item" ] [ text "Nothing logged yet for this job" ] ]
 
-            journal ->
-                List.map (\journalEntry -> li [ class "collection-item" ] [ text journalEntry ]) journal
+            worklogs ->
+                List.map (\worklogEntry -> li [ class "collection-item" ] [ text worklogEntry ]) worklogs
 
 
 {-| Present the form to add new entried to the job's journal
 -}
-showJournalForm : Model -> Html Action
-showJournalForm model =
+viewWorklogForm : Model -> Html Msg
+viewWorklogForm { worklog } =
     div [ class "row" ]
         [ div [ class "input-field col s9" ]
             [ input
                 [ id "input-worklog"
-                , value model.worklog
+                , value (unsavedWorklogEntry worklog)
                 , type_ "text"
-                , onInput <| UpdateWorklog
-                , onEnter <| SaveWorklogToJournal
+                , onInput (Edit 0 >> Worklog)
+                , onEnter (Worklog Add)
                 ]
                 []
             , label [ for "input-worklog" ]
@@ -227,14 +278,14 @@ showJournalForm model =
             [ button
                 [ class "waves-effect waves-light btn"
                 , type_ "submit"
-                , onClick <| SaveWorklogToJournal
+                , onClick (Worklog Add)
                 ]
                 [ text "Log" ]
             ]
         ]
 
 
-onEnter : Action -> Attribute Action
+onEnter : Msg -> Attribute Msg
 onEnter action =
     let
         tagger code =

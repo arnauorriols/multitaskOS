@@ -6,433 +6,406 @@ port module Main exposing (Model, main)
 
 -}
 
+import Debug
 import Json.Decode
+import Json.Encode
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Update.Extra
-
-import Job
+import List.Extra
 import Hotkey
+import Job
 
 
 -- MODEL
 
 
-{-| Our model is conformed by the following elements:
-    * job: Job on current execution stack
-    * jobQueue: List of queued jobs, waiting for some execution time
-    * newJob: Form data to build a new job.
-
-The usage flow is roughly summarized as follows:
-    1. At the start of the world, there is no job executing or jobs waiting on the jobQueue
-    2. An empty job sits in newJob.
-    3. The user creates at least one new job. Creating a job means adding a newJob to the jobQueue
-    4. When the jobQueue holds at least one job, the OS selects the first job in the queue and prompts the user to start working on it
-    5. When the user starts working on a job, this job is stored in the field 'job' of the Model.
-    6. The user cannot work on another job until she yields or finishes the current job under execution.
-    7. Finishing a job removes it from the world.
-    8. Yielding a job puts it at the end of the jobQueue.
-    9. When the user yields or finishes a job, OS jumps to OP 4.
-
--}
+{-| -}
 type alias Model =
-    { job : Maybe Job.Model
-    , jobQueue : JobQueue
-    , newJob : Job.Model
-    , hotkeysPressed: Hotkey.Model
+    { jobQueue : JobQueue
+    , unsavedJob : Job.Model
+    , hotkeysPressed : Hotkey.Model
     }
 
 
+type JobStatus
+    = Active
+    | Queued
+
+
 type alias JobQueue =
-    List Job.Model
+    List ( JobStatus, Job.Model )
 
 
 init : Model
 init =
-    { job = Nothing
-    , jobQueue = []
-    , newJob = Job.init
+    { jobQueue = []
+    , unsavedJob = Job.init
     , hotkeysPressed = Hotkey.init
     }
 
 
-flushNewJob : Model -> Model
-flushNewJob model =
-    { model | newJob = Job.init }
+encode : Model -> Json.Encode.Value
+encode model =
+    let
+        encodeStatus status =
+            Json.Encode.string
+                (case status of
+                    Active ->
+                        "Active"
+
+                    Queued ->
+                        "Queued"
+                )
+
+        encodeJobTuple ( jobStatus, job ) =
+            Json.Encode.list
+                [ encodeStatus jobStatus
+                , Job.encode job
+                ]
+
+        jobQueue =
+            List.map encodeJobTuple model.jobQueue
+    in
+        Json.Encode.object
+            [ ( "jobQueue", Json.Encode.list jobQueue )
+            , ( "unsavedJob", Job.encode model.unsavedJob )
+            ]
 
 
-updateNewJob : Model -> Job.Model -> Model
-updateNewJob model newJob =
-    { model | newJob = newJob }
+decoder : Json.Decode.Decoder Model
+decoder =
+    let
+        jobStatusDeserializer jobStatus =
+            case jobStatus of
+                "Active" ->
+                    Active
+
+                "Queued" ->
+                    Queued
+
+                _ ->
+                    Debug.crash "A Job loaded from the storage has an impossible status!"
+
+        jobStatusDecoder =
+            (Json.Decode.map jobStatusDeserializer Json.Decode.string)
+
+        jobQueueDecoder =
+            Json.Decode.list
+                (Json.Decode.map2
+                    (,)
+                    (Json.Decode.index 0 jobStatusDecoder)
+                    (Json.Decode.index 1 Job.decoder)
+                )
+    in
+        Json.Decode.map3
+            Model
+            (Json.Decode.field "jobQueue" jobQueueDecoder)
+            (Json.Decode.field "unsavedJob" Job.decoder)
+            (Json.Decode.succeed Hotkey.init)
 
 
-getNewJob : Model -> Job.Model
-getNewJob model =
-    model.newJob
+decodeValue : Json.Encode.Value -> Model
+decodeValue value =
+    case Json.Decode.decodeValue decoder value of
+        Ok decodedModel ->
+            decodedModel
 
-
-executeJob : Job.Model -> Model -> Model
-executeJob job model =
-    { model | job = Just job }
-
-
-updateExecutingJob : Model -> Job.Model -> Model
-updateExecutingJob model job =
-    { model | job = Just job }
-
-
-stopExecutingJob : Model -> Model
-stopExecutingJob model =
-    { model | job = Nothing }
-
-
-getExecutingJob : Model -> Maybe Job.Model
-getExecutingJob model =
-    model.job
-
-
-getJobQueue : Model -> JobQueue
-getJobQueue model =
-    model.jobQueue
-
-
-getNextScheduledJob : Model -> Maybe Job.Model
-getNextScheduledJob model =
-    case getExecutingJob model of
-        Nothing ->
-            case getJobQueue model of
-                [] ->
-                    Nothing
-
-                nextQueuedJob :: _ ->
-                    Just nextQueuedJob
-
-        Just job ->
-            Just job
-
-
-enqueueJob : Job.Model -> JobQueue -> JobQueue
-enqueueJob job jobQueue =
-    jobQueue ++ [ job ]
-
-
-updateJobQueue : JobQueue -> Model -> Model
-updateJobQueue jobQueue model =
-    { model | jobQueue = jobQueue }
-
-
-getHotkeysPressed : Model -> Hotkey.Model
-getHotkeysPressed model =
-    model.hotkeysPressed
-
-
-updateHotkeysPressed : Hotkey.Model -> Model -> Model
-updateHotkeysPressed hotkeysPressed model =
-    { model | hotkeysPressed = hotkeysPressed }
+        Err error ->
+            Debug.crash error
 
 
 
 -- UPDATE
 
 
-type Action
+type Msg
     = NoOp
-    | ScheduleJob
-    | YieldJob
-    | FinishJob
-    | ExecuteNextJob
-    | SkipNextJob
-    | DropNextJob
-    | CreateNewJob Job.Action
-    | WorkOnJob Job.Action
-    | ShowJobDetails Job.Action
-    | HotkeyAction Hotkey.Action
+    | SaveUnsaved
+    | UnsavedMsg Job.Msg
+    | ExecuteNext
+    | SkipNext
+    | DropNext
+    | NextMsg Job.Msg
+    | YieldCurrent
+    | FinishCurrent
+    | CurrentMsg Job.Msg
+    | HotkeyMsg Hotkey.Msg
     | HotkeyTriggered Hotkey.Hotkey
 
 
-update : Action -> Model -> ( Model, Cmd Action )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
         NoOp ->
-            model ! []
+            ( model, Cmd.none )
 
-        ScheduleJob ->
-            if Job.isValid model.newJob then
-                (model
-                    |> updateJobQueue (enqueueJob model.newJob model.jobQueue)
-                    |> flushNewJob
-                )
-                    ! []
-            else
-                model ! []
-
-        YieldJob ->
-            case getExecutingJob model of
-                Nothing ->
-                    model ! []
-
-                Just job ->
-                    (model
-                        |> stopExecutingJob
-                        |> updateJobQueue (enqueueJob job model.jobQueue)
-                    )
-                        ! []
-
-        FinishJob ->
-            (stopExecutingJob model) ! []
-
-        ExecuteNextJob ->
-            case getExecutingJob model of
-                Nothing ->
-                    case getJobQueue model of
-                        [] ->
-                            model ! []
-
-                        nextJob :: restQueue ->
-                            (model
-                                |> executeJob nextJob
-                                |> updateJobQueue restQueue
-                            ) ! []
-                _ ->
-                    model ! []
-
-        SkipNextJob ->
-            case getExecutingJob model of
-                Nothing ->
-                    case getJobQueue model of
-                        [] ->
-                            model ! []
-
-                        nextJob :: restQueue ->
-                            let 
-                                jobQueue =
-                                    enqueueJob nextJob restQueue
-                            in
-                                (model
-                                    |> updateJobQueue jobQueue
-                                ) ! []
-                _ ->
-                    model ! []
-
-        DropNextJob ->
-            case getExecutingJob model of
-                Nothing ->
-                    case getJobQueue model of
-                        [] ->
-                            model ! []
-
-                        _ :: restQueue ->
-                            (model
-                                |> updateJobQueue restQueue
-                            ) ! []
-                _ ->
-                    model ! []
-
-        CreateNewJob action ->
+        UnsavedMsg jobMsg ->
             let
-                ( newJob, cmds ) =
-                    Job.update action <| getNewJob model
+                ( newUnsavedJob, newJobCmd ) =
+                    Job.update jobMsg model.unsavedJob
             in
-                updateNewJob model newJob ! [ Cmd.map CreateNewJob cmds ]
+                ( { model | unsavedJob = newUnsavedJob }
+                , Cmd.map UnsavedMsg newJobCmd
+                )
 
-        ShowJobDetails action ->
-            case getNextScheduledJob model of
-                Nothing ->
-                    model ! []
+        SaveUnsaved ->
+            let
+                saveUnsavedIntoQueue model =
+                    { model | jobQueue = ( Queued, model.unsavedJob ) :: model.jobQueue }
 
-                Just nextScheduledJob ->
+                flushUnsaved model =
+                    { model | unsavedJob = Job.init }
+            in
+                if Job.isValid model.unsavedJob then
+                    ( model
+                        |> saveUnsavedIntoQueue
+                        |> flushUnsaved
+                    , Cmd.none
+                    )
+                else
+                    ( model, Cmd.none )
+
+        ExecuteNext ->
+            case List.Extra.uncons model.jobQueue of
+                Just ( ( Queued, job ), restQueue ) ->
+                    ( { model | jobQueue = ( Active, job ) :: restQueue }, Cmd.none )
+                        |> Update.Extra.andThen update (CurrentMsg Job.focusWorklogForm)
+
+                _ ->
+                    ( model, Cmd.none )
+
+        SkipNext ->
+            case List.Extra.uncons model.jobQueue of
+                Just ( ( Queued, job ), restQueue ) ->
+                    ( { model | jobQueue = restQueue ++ [ ( Queued, job ) ] }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        DropNext ->
+            case List.Extra.uncons model.jobQueue of
+                Just ( ( Queued, job ), restQueue ) ->
+                    ( { model | jobQueue = restQueue }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        NextMsg jobMsg ->
+            case List.Extra.uncons model.jobQueue of
+                Just ( ( jobStatus, job ), restQueue ) ->
                     let
-                        ( updatedNextScheduledJob, cmds ) =
-                            Job.update action nextScheduledJob
+                        ( job2, cmd ) =
+                            Job.update jobMsg job
                     in
-                        model ! [ Cmd.map ShowJobDetails cmds ]
+                        ( { model | jobQueue = ( jobStatus, job2 ) :: restQueue }
+                        , Cmd.map NextMsg cmd
+                        )
 
-        WorkOnJob action ->
-            case getExecutingJob model of
-                Nothing ->
-                    model ! []
+                _ ->
+                    ( model, Cmd.none )
 
-                Just executingJob ->
+        YieldCurrent ->
+            case List.Extra.uncons model.jobQueue of
+                Just ( ( Active, job ), restQueue ) ->
+                    ( { model | jobQueue = restQueue ++ [ ( Queued, job ) ] }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        FinishCurrent ->
+            case List.Extra.uncons model.jobQueue of
+                Just ( ( Active, job ), restQueue ) ->
+                    ( { model | jobQueue = restQueue }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
+        CurrentMsg jobMsg ->
+            case List.Extra.uncons model.jobQueue of
+                Just ( ( Active, job ), restQueue ) ->
                     let
-                        ( updatedExecutingJob, cmds ) =
-                            Job.update action executingJob
+                        ( job2, cmd ) =
+                            Job.update jobMsg job
                     in
-                        updateExecutingJob model updatedExecutingJob ! [ Cmd.map WorkOnJob cmds ]
+                        ( { model | jobQueue = ( Active, job2 ) :: restQueue }
+                        , Cmd.map CurrentMsg cmd
+                        )
+
+                _ ->
+                    ( model, Cmd.none )
 
         HotkeyTriggered hotkey ->
             let
-                nextAction =
+                nextMsg =
                     case hotkey of
                         Hotkey.N ->
-                            CreateNewJob Job.newJobHotkeyAction
+                            UnsavedMsg Job.focusTitleForm
 
                         Hotkey.G ->
-                            ExecuteNextJob
+                            ExecuteNext
 
                         Hotkey.Y ->
-                            YieldJob
+                            YieldCurrent
 
                         Hotkey.S ->
-                            SkipNextJob
+                            SkipNext
 
                         Hotkey.R ->
-                            DropNextJob
+                            DropNext
 
                         Hotkey.C ->
-                            FinishJob
-
+                            FinishCurrent
             in
-                model ! []
-                    |> Update.Extra.andThen update nextAction
+                ( model, Cmd.none ) |> Update.Extra.andThen update nextMsg
 
-        HotkeyAction action ->
+        HotkeyMsg action ->
             let
-                (hotkeysPressed, hotkeyTriggered) =
-                        Hotkey.update action <| getHotkeysPressed model
+                ( hotkeysPressed, hotkeyTriggered ) =
+                    Hotkey.update action model.hotkeysPressed
 
                 modelUpdated =
-                    updateHotkeysPressed hotkeysPressed model
+                    { model | hotkeysPressed = hotkeysPressed }
             in
                 case hotkeyTriggered of
                     Just hotkey ->
-                        modelUpdated ! []
+                        ( modelUpdated, Cmd.none )
                             |> Update.Extra.andThen update (HotkeyTriggered hotkey)
 
                     Nothing ->
-                        modelUpdated ! []
-
+                        ( modelUpdated, Cmd.none )
 
 
 
 -- VIEW
 
 
-view : Model -> Html Action
+view : Model -> Html Msg
 view model =
     viewPort
         [ sideSection
-            [ jobScheduleForm model ]
+            [ viewNewJobForm model ]
         , mainSection
-            [ nextScheduledJobTitle model
-            , contextSwitchingControls model
-            , nextScheduledJobJournal model
-            , nextScheduledJobWorklogForm model
+            [ viewNextScheduledJobTitle model
+            , viewContextSwitchingControls model
+            , viewNextScheduledJobWorklog model
+            , viewActiveJobWorklogForm model
             ]
         ]
 
 
-viewPort : List (Html Action) -> Html Action
+viewPort : List (Html Msg) -> Html Msg
 viewPort elements =
     div [ class "container flex-container flex-contained" ]
-        [ div [class "row flex-container flex-contained"] elements ]
+        [ div [ class "row flex-container flex-contained" ] elements ]
 
 
-sideSection : List (Html Action) -> Html Action
+sideSection : List (Html Msg) -> Html Msg
 sideSection elements =
     div [ class "col s4 flex-container flex-contained" ] elements
 
 
-mainSection : List (Html Action) -> Html Action
+mainSection : List (Html Msg) -> Html Msg
 mainSection elements =
     div [ class "col s8 flex-container flex-contained" ] elements
 
 
-nextScheduledJobTitle : Model -> Html Action
-nextScheduledJobTitle model =
+viewNextScheduledJobTitle : Model -> Html Msg
+viewNextScheduledJobTitle model =
     let
         jobTitle =
-            case getNextScheduledJob model of
+            case List.head model.jobQueue of
+                Just ( _, job ) ->
+                    Job.viewTitle job |> Html.map NextMsg
+
                 Nothing ->
                     h5 [ class "section grey-text text-lighten-2" ] [ text "Nothing to work on" ]
-                Just nextScheduledJob ->
-                    Html.map ShowJobDetails <| Job.showJobTitle nextScheduledJob
-     in
-         div [] [ jobTitle ]
+    in
+        div [] [ jobTitle ]
 
 
-nextScheduledJobJournal : Model -> Html Action
-nextScheduledJobJournal model =
-    case getNextScheduledJob model of
+viewNextScheduledJobWorklog : Model -> Html Msg
+viewNextScheduledJobWorklog model =
+    case List.head model.jobQueue of
+        Just ( _, job ) ->
+            Job.viewWorklog job |> Html.map NextMsg
+
         Nothing ->
             Html.text ""
 
-        Just nextScheduledJob ->
-            Html.map ShowJobDetails <| Job.showJournalList nextScheduledJob
 
+viewActiveJobWorklogForm : Model -> Html Msg
+viewActiveJobWorklogForm model =
+    case List.head model.jobQueue of
+        Just ( Active, job ) ->
+            Job.viewWorklogForm job |> Html.map CurrentMsg
 
-nextScheduledJobWorklogForm : Model -> Html Action
-nextScheduledJobWorklogForm model =
-    case getExecutingJob model of
-        Nothing ->
+        _ ->
             Html.text ""
 
-        Just executingJob ->
-            Html.map WorkOnJob <| Job.showJournalForm executingJob
 
-
-
-jobScheduleForm : Model -> Html Action
-jobScheduleForm model =
+viewNewJobForm : Model -> Html Msg
+viewNewJobForm model =
     div
         [ class "section"
-        , onEnter ScheduleJob
+        , onEnter SaveUnsaved
         ]
-        [ Html.map CreateNewJob <| Job.showJobForm <| getNewJob model
+        [ Job.viewTitleForm model.unsavedJob |> Html.map UnsavedMsg
         , button
             [ class "waves-effect waves-light btn"
-            , onClick ScheduleJob
+            , onClick SaveUnsaved
             ]
             [ text "Schedule" ]
         ]
 
 
-contextSwitchingControls : Model -> Html Action
-contextSwitchingControls model =
-    div []
-        <| case getExecutingJob model of
-            Nothing ->
-                case getJobQueue model of
-                    [] ->
-                        []
-
-                    jobQueue ->
+viewContextSwitchingControls : Model -> Html Msg
+viewContextSwitchingControls model =
+    div [] <|
+        case List.head model.jobQueue of
+            Just ( jobStatus, job ) ->
+                case jobStatus of
+                    Active ->
                         [ button
                             [ class "waves-effect waves-light btn"
-                            , onClick ExecuteNextJob
+                            , onClick YieldCurrent
+                            ]
+                            [ text "Yield" ]
+                        , button
+                            [ class "waves-effect waves-light btn"
+                            , onClick FinishCurrent
+                            ]
+                            [ text "Finished" ]
+                        ]
+
+                    Queued ->
+                        [ button
+                            [ class "waves-effect waves-light btn"
+                            , onClick ExecuteNext
                             ]
                             [ text "Go!" ]
                         , button
                             ([ classList
                                 [ ( "waves-effect waves-light btn", True )
-                                , ( "disabled", List.length jobQueue < 2 )
+                                , ( "disabled", List.length model.jobQueue < 2 )
                                 ]
-                             , onClick SkipNextJob
+                             , onClick SkipNext
                              ]
                             )
                             [ text "Skip" ]
                         , button
                             [ class "waves-effect waves-light btn"
-                            , onClick DropNextJob
+                            , onClick DropNext
                             ]
                             [ text "Drop" ]
                         ]
 
-            Just job ->
-                [ button
-                    [ class "waves-effect waves-light btn"
-                    , onClick YieldJob
-                    ]
-                    [ text "Yield" ]
-                , button
-                    [ class "waves-effect waves-light btn"
-                    , onClick FinishJob
-                    ]
-                    [ text "Finished" ]
-                ]
+            Nothing ->
+                []
 
 
-onEnter : Action -> Attribute Action
+onEnter : Msg -> Attribute Msg
 onEnter action =
     let
         tagger code =
@@ -444,38 +417,38 @@ onEnter action =
         on "keydown" <| Json.Decode.map tagger keyCode
 
 
-subscriptions : Model -> Sub Action
+subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map HotkeyAction Hotkey.subscriptions
+    Sub.map HotkeyMsg Hotkey.subscriptions
 
 
 
 -- WIRING
 
 
-{-| Simple Signal Wiring using an Actions tagged union
+{-| Simple Signal Wiring using an Msgs tagged union
 -}
-main : Program (Maybe Model) Model Action
+main : Program (Maybe Json.Encode.Value) Model Msg
 main =
     Html.programWithFlags
         { init =
             \maybeModel ->
                 case maybeModel of
                     Just model ->
-                        model ! []
+                        ( decodeValue model, Cmd.none )
 
                     Nothing ->
-                        init ! []
+                        ( init, Cmd.none )
         , view = view
         , update =
             \action model ->
                 let
-                    ( newModel, cmds ) =
+                    ( newModel, cmd ) =
                         update action model
                 in
-                    newModel ! [ persistModel newModel, cmds ]
+                    ( newModel, Cmd.batch [ persistModel (encode newModel), cmd ] )
         , subscriptions = subscriptions
         }
 
 
-port persistModel : Model -> Cmd msg
+port persistModel : Json.Encode.Value -> Cmd msg

@@ -3,7 +3,7 @@ module Hotkey
         ( Hotkey(..)
         , Model
         , init
-        , Action(..)
+        , Msg(..)
         , update
         , subscriptions
         )
@@ -62,12 +62,12 @@ fromChar char =
 -- UPDATE
 
 
-type Action
+type Msg
     = HotkeyDown Int
     | HotkeyUp Int
 
 
-update : Action -> Model -> ( Model, Maybe Hotkey )
+update : Msg -> Model -> ( Model, Maybe Hotkey )
 update action model =
     case action of
         HotkeyDown keycode ->
@@ -106,7 +106,7 @@ update action model =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Sub Action
+subscriptions : Sub Msg
 subscriptions =
     Sub.batch
         [ Keyboard.downs HotkeyDown
