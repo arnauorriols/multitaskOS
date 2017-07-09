@@ -180,7 +180,12 @@ update action model =
         UnsavedJob Save ->
             let
                 saveUnsavedIntoQueue model =
-                    { model | jobQueue = ( Queued, model.unsavedJob ) :: model.jobQueue }
+                    case List.Extra.uncons model.jobQueue of
+                        Just ( ( Active, activeJob ), restQueue ) ->
+                            { model | jobQueue = ( Active, activeJob ) :: ( Queued, model.unsavedJob ) :: restQueue }
+
+                        _ ->
+                            { model | jobQueue = ( Queued, model.unsavedJob ) :: model.jobQueue }
 
                 flushUnsaved model =
                     { model | unsavedJob = Job.init }
