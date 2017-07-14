@@ -385,8 +385,8 @@ viewNextScheduledJobTitle model =
 viewNextScheduledJobWorklog : Model -> Html Msg
 viewNextScheduledJobWorklog model =
     case List.head model.jobQueue of
-        Just ( _, job ) ->
-            Job.viewWorklog job |> Html.map (NextJobMsg >> NextJob)
+        Just ( jobStatus, job ) ->
+            Job.viewWorklog (jobStatus == Active) job |> Html.map (NextJobMsg >> NextJob)
 
         Nothing ->
             Html.text ""

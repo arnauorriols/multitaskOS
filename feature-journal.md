@@ -21,3 +21,4 @@
 19. I can drop a job using only the keyboard
 20. I can finish an active job using only the keyboard
 21. I am hinted about the hotkeys available when in doubt
+22. I can edit a worklog entry just by clicking on it

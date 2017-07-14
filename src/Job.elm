@@ -41,6 +41,7 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import List.Extra
+import Update.Extra
 import Dom
 import Task
 
@@ -54,6 +55,7 @@ to the journal by means of a worklog form.
 type alias Model =
     { title : String
     , worklog : Worklog
+    , editingWorklogEntryIndex : Maybe Int
     }
 
 
@@ -71,6 +73,7 @@ init : Model
 init =
     { title = ""
     , worklog = initWorklog
+    , editingWorklogEntryIndex = Nothing
     }
 
 
@@ -88,10 +91,11 @@ encode model =
 -}
 decoder : Json.Decode.Decoder Model
 decoder =
-    Json.Decode.map2
+    Json.Decode.map3
         Model
         (Json.Decode.field "title" Json.Decode.string)
         (Json.Decode.field "worklog" (Json.Decode.list Json.Decode.string))
+        (Json.Decode.succeed Nothing)
 
 
 {-| Assert the Job is valid and can be scheduled
@@ -156,7 +160,9 @@ type Msg
 
 type WorklogMsg
     = Add
-    | Edit Int WorklogEntry
+    | StartEditing Int
+    | StopEditing Int
+    | Save Int WorklogEntry
 
 
 type FocusMsg
@@ -167,8 +173,8 @@ type FocusMsg
 {-| Handle incoming @docs Msg
 -}
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action model =
-    case action of
+update msg model =
+    case msg of
         NoOp ->
             ( model, Cmd.none )
 
@@ -197,8 +203,15 @@ update action model =
         Worklog Add ->
             ( { model | worklog = initWorklogEntry :: model.worklog }, Cmd.none )
 
-        Worklog (Edit index worklogEntry) ->
+        Worklog (Save index worklogEntry) ->
             ( { model | worklog = editWorklogEntry index worklogEntry model.worklog }, Cmd.none )
+
+        Worklog (StartEditing worklogEntryIndex) ->
+            ( { model | editingWorklogEntryIndex = Just worklogEntryIndex }, Cmd.none )
+                |> (Update.Extra.andThen update (Focus (Attempt "editing-worklog-entry")))
+
+        Worklog (StopEditing worklogEntryIndex) ->
+            ( { model | editingWorklogEntryIndex = Nothing }, Cmd.none )
 
 
 {-| Focus the input field to enter the title of a new job
@@ -246,15 +259,79 @@ viewTitle model =
 
 {-| Present the list of journal entries of a job
 -}
-viewWorklog : Model -> Html Msg
-viewWorklog model =
+viewWorklog : Bool -> Model -> Html Msg
+viewWorklog editable model =
     ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
         case savedWorklog model.worklog of
             [] ->
                 [ li [ class "collection-item" ] [ text "Nothing logged yet for this job" ] ]
 
             worklogs ->
-                List.map (\worklogEntry -> li [ class "collection-item" ] [ text worklogEntry ]) worklogs
+                let
+                    readView worklogEntryIndex worklogEntry =
+                        let
+                            parentAttributes =
+                                [ onClick (Worklog (StartEditing worklogEntryIndex))
+                                , style
+                                    [ ( "cursor", "pointer" )
+                                    ]
+                                ]
+
+                            children =
+                                [ text worklogEntry ]
+                        in
+                            ( parentAttributes, children )
+
+                    editView worklogEntryIndex worklogEntry =
+                        let
+                            parentAttributes =
+                                []
+
+                            children =
+                                [ input
+                                    ([ id "editing-worklog-entry"
+                                     , style
+                                        [ ( "border-bottom", "none" )
+                                        , ( "height", "1.5em" )
+                                        , ( "margin-bottom", "0" )
+                                        ]
+                                     , type_ "text"
+                                     , value worklogEntry
+                                     , onInput (Save worklogEntryIndex >> Worklog)
+                                     , onBlur (Worklog (StopEditing worklogEntryIndex))
+                                     , onEnter (Worklog (StopEditing worklogEntryIndex))
+                                     ]
+                                    )
+                                    []
+                                ]
+                        in
+                            ( parentAttributes, children )
+
+                    readOrEditView worklogEntryIndex worklogEntry =
+                        case ( editable, model.editingWorklogEntryIndex ) of
+                            ( True, Just editedIndex ) ->
+                                if worklogEntryIndex == editedIndex then
+                                    editView worklogEntryIndex worklogEntry
+                                else
+                                    readView worklogEntryIndex worklogEntry
+
+                            _ ->
+                                readView worklogEntryIndex worklogEntry
+                in
+                    List.indexedMap
+                        (\index worklogEntry ->
+                            let
+                                indexCountingUnsavedEntry =
+                                    index + 1
+
+                                ( parentAttributes, children ) =
+                                    readOrEditView indexCountingUnsavedEntry worklogEntry
+                            in
+                                li
+                                    ([ class "collection-item" ] ++ parentAttributes)
+                                    children
+                        )
+                        worklogs
 
 
 {-| Present the form to add new entried to the job's journal
@@ -267,7 +344,7 @@ viewWorklogForm buttonText { worklog } =
                 [ id "input-worklog"
                 , value (unsavedWorklogEntry worklog)
                 , type_ "text"
-                , onInput (Edit 0 >> Worklog)
+                , onInput (Save 0 >> Worklog)
                 , onEnter (Worklog Add)
                 ]
                 []
