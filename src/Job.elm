@@ -357,7 +357,7 @@ viewWorklogForm buttonText { worklog } =
                 ]
                 []
             , label [ for "input-worklog" ]
-                [ text "Journal entry" ]
+                [ text "New journal entry" ]
             ]
         , div [ class "input-field col s3" ]
             [ button
