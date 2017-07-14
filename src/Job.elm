@@ -278,7 +278,15 @@ viewWorklog editable model =
                                 ]
 
                             children =
-                                [ text worklogEntry ]
+                                if (not (String.isEmpty worklogEntry)) then
+                                    [ text worklogEntry ]
+                                else
+                                    [ em
+                                        [ style
+                                            [ ( "font-size", "0.9em" ) ]
+                                        ]
+                                        [ text "Nothing much -- click to edit" ]
+                                    ]
                         in
                             ( parentAttributes, children )
 
