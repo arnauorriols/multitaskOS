@@ -360,12 +360,16 @@ viewPort elements =
 
 sideSection : List (Html Msg) -> Html Msg
 sideSection elements =
-    div [ class "col s4 flex-container flex-contained" ] elements
+    div [ class "col s4 flex-container flex-contained" ]
+        [ div [ class "section flex-container flex-contained" ] elements
+        ]
 
 
 mainSection : List (Html Msg) -> Html Msg
 mainSection elements =
-    div [ class "col s8 flex-container flex-contained" ] elements
+    div [ class "col s8 flex-container flex-contained" ]
+        [ div [ class "section flex-container flex-contained" ] elements
+        ]
 
 
 viewNextScheduledJobTitle : Model -> Html Msg
@@ -389,8 +393,7 @@ viewNextScheduledJobTitle model =
                                 ]
                                 [ text content ]
                     in
-                        p
-                            [ class "section grey-text text-darken-1" ]
+                        p [ class "card-panel teal lighten-4 grey-text text-darken-3" ]
                             [ text "Looks like you are new around here! Let me give you a few hints to get started:"
                             , bulletList
                                 [ bullet "The goal of this tool is to help you manage the overhead of doing multiple tasks at the same time"
@@ -403,7 +406,7 @@ viewNextScheduledJobTitle model =
                                 ]
                             ]
     in
-        div [] [ jobTitle ]
+        jobTitle
 
 
 viewNextScheduledJobWorklog : Model -> Html Msg
@@ -437,8 +440,7 @@ viewNewJobForm model =
             hotkeyHintOrReal model.hintsStatus "Alt+N" "New job"
     in
         div
-            [ class "section"
-            , onEnter (UnsavedJob Save)
+            [ onEnter (UnsavedJob Save)
             ]
             [ Job.viewTitleForm placeholder model.unsavedJob |> Html.map (UnsavedJobMsg >> UnsavedJob)
             , button

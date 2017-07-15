@@ -254,7 +254,7 @@ viewTitleForm placeholder model =
 -}
 viewTitle : Model -> Html Msg
 viewTitle model =
-    h3 [ class "grey-text text-darken-2" ] [ text model.title ]
+    h4 [ class "grey-text text-darken-2" ] [ text model.title ]
 
 
 {-| Present the list of journal entries of a job
@@ -275,7 +275,7 @@ viewWorklog editable model =
                         ]
                         [ text content ]
             in
-                p [ class "grey-text text-darken-1" ]
+                p [ class "card-panel flex-scrollable teal lighten-4 grey-text text-darken-3" ]
                     [ text "Looks like you haven't started working on this job yet. Let me give you a few hints to get started:"
                     , bulletList
                         [ bullet "To skip this job and jump to the next job in the queue, click \"SKIP\" or use ALT+S hotkey"
@@ -377,7 +377,7 @@ viewWorklog editable model =
 -}
 viewWorklogForm : String -> Model -> Html Msg
 viewWorklogForm buttonText { worklog } =
-    div [ class "row" ]
+    div []
         [ div [ class "input-field col s9" ]
             [ input
                 [ id "input-worklog"
