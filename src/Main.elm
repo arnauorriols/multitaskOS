@@ -377,7 +377,31 @@ viewNextScheduledJobTitle model =
                     Job.viewTitle job |> Html.map (NextJobMsg >> NextJob)
 
                 Nothing ->
-                    h5 [ class "section grey-text text-lighten-2" ] [ text "Nothing to work on" ]
+                    let
+                        bulletList =
+                            ul [ class "browser-default" ]
+
+                        bullet content =
+                            li
+                                [ class "browser-default"
+                                , style
+                                    [ ( "list-style-type", "disc" ) ]
+                                ]
+                                [ text content ]
+                    in
+                        p
+                            [ class "section grey-text text-darken-1" ]
+                            [ text "Looks like you are new around here! Let me give you a few hints to get started:"
+                            , bulletList
+                                [ bullet "The goal of this tool is to help you manage the overhead of doing multiple tasks at the same time"
+                                , bullet "Tasks in MultitaskOS are called \"jobs\". Add a new job using the form at the left"
+                                , bullet "New jobs are scheduled to a queue. MultitaskOS will take care of deciding for you which is the next job you have to work on"
+                                , bullet "Each job has a journal to keep a detailed log of any relevant information you might need in the future when coming back to it"
+                                , bullet "You can yield a job at any time, and resume working on the next one"
+                                , bullet "Thanks to the journal, you can dump or load the context of a job at any time, so that you don't need to keep it in your head!"
+                                , bullet "Find out about the hotkeys available by clicking on the help icon on the left-bottom corner, or using the ALT+H hotkey"
+                                ]
+                            ]
     in
         div [] [ jobTitle ]
 
@@ -410,7 +434,7 @@ viewNewJobForm : Model -> Html Msg
 viewNewJobForm model =
     let
         placeholder =
-            hotkeyHintOrReal model.hintsStatus "Alt+N" "Job title"
+            hotkeyHintOrReal model.hintsStatus "Alt+N" "New job"
     in
         div
             [ class "section"
@@ -468,7 +492,7 @@ viewContextSwitchingControls model =
                             [ class "waves-effect waves-light btn"
                             , onClick (ActiveJob Finish)
                             ]
-                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finished") ]
+                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finish") ]
                         ]
 
                     Queued ->

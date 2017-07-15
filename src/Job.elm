@@ -261,71 +261,96 @@ viewTitle model =
 -}
 viewWorklog : Bool -> Model -> Html Msg
 viewWorklog editable model =
-    ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
-        case savedWorklog model.worklog of
-            [] ->
-                [ li [ class "collection-item" ] [ text "Nothing logged yet for this job" ] ]
+    case savedWorklog model.worklog of
+        [] ->
+            let
+                bulletList =
+                    ul [ class "browser-default" ]
 
-            worklogs ->
-                let
-                    readView worklogEntryIndex worklogEntry =
-                        let
-                            parentAttributes =
-                                [ onClick (Worklog (StartEditing worklogEntryIndex))
-                                , style
-                                    [ ( "cursor", "pointer" )
-                                    ]
+                bullet content =
+                    li
+                        [ class "browser-default"
+                        , style
+                            [ ( "list-style-type", "disc" ) ]
+                        ]
+                        [ text content ]
+            in
+                p [ class "grey-text text-darken-1" ]
+                    [ text "Looks like you haven't started working on this job yet. Let me give you a few hints to get started:"
+                    , bulletList
+                        [ bullet "To skip this job and jump to the next job in the queue, click \"SKIP\" or use ALT+S hotkey"
+                        , bullet "To delete this job altogether, click \"DROP\" or use ALT+R hotkey"
+                        , bullet "To start working on this job, click \"GO!\" or use ALT+G hotkey"
+                        , bulletList
+                            [ bullet "When you are working on the job, you can add new entries to the job journal. Add as many as possible, so that you can quickly remember all the context of the job when you get back to it at another time!"
+                            , bullet "When you have to stop working on the job, click \"YIELD\" or use ALT+Y. When a job is yielded, it is put back to the end of the queue, and you can start working on the next one"
+                            , bullet
+                                "When you have finished working on the job, click \"FINISH\" or use ALT+C"
+                            ]
+                        ]
+                    ]
+
+        worklogs ->
+            let
+                readView worklogEntryIndex worklogEntry =
+                    let
+                        parentAttributes =
+                            [ onClick (Worklog (StartEditing worklogEntryIndex))
+                            , style
+                                [ ( "cursor", "pointer" )
                                 ]
+                            ]
 
-                            children =
-                                if (not (String.isEmpty worklogEntry)) then
-                                    [ text worklogEntry ]
-                                else
-                                    [ em
-                                        [ style
-                                            [ ( "font-size", "0.9em" ) ]
-                                        ]
-                                        [ text "Nothing much -- click to edit" ]
+                        children =
+                            if (not (String.isEmpty worklogEntry)) then
+                                [ text worklogEntry ]
+                            else
+                                [ em
+                                    [ style
+                                        [ ( "font-size", "0.9em" ) ]
                                     ]
-                        in
-                            ( parentAttributes, children )
+                                    [ text "Nothing much -- click to edit" ]
+                                ]
+                    in
+                        ( parentAttributes, children )
 
-                    editView worklogEntryIndex worklogEntry =
-                        let
-                            parentAttributes =
+                editView worklogEntryIndex worklogEntry =
+                    let
+                        parentAttributes =
+                            []
+
+                        children =
+                            [ input
+                                ([ id "editing-worklog-entry"
+                                 , style
+                                    [ ( "border-bottom", "none" )
+                                    , ( "height", "1.5em" )
+                                    , ( "margin-bottom", "0" )
+                                    ]
+                                 , type_ "text"
+                                 , value worklogEntry
+                                 , onInput (Save worklogEntryIndex >> Worklog)
+                                 , onBlur (Worklog (StopEditing worklogEntryIndex))
+                                 , onEnter (Worklog (StopEditing worklogEntryIndex))
+                                 ]
+                                )
                                 []
+                            ]
+                    in
+                        ( parentAttributes, children )
 
-                            children =
-                                [ input
-                                    ([ id "editing-worklog-entry"
-                                     , style
-                                        [ ( "border-bottom", "none" )
-                                        , ( "height", "1.5em" )
-                                        , ( "margin-bottom", "0" )
-                                        ]
-                                     , type_ "text"
-                                     , value worklogEntry
-                                     , onInput (Save worklogEntryIndex >> Worklog)
-                                     , onBlur (Worklog (StopEditing worklogEntryIndex))
-                                     , onEnter (Worklog (StopEditing worklogEntryIndex))
-                                     ]
-                                    )
-                                    []
-                                ]
-                        in
-                            ( parentAttributes, children )
-
-                    readOrEditView worklogEntryIndex worklogEntry =
-                        case ( editable, model.editingWorklogEntryIndex ) of
-                            ( True, Just editedIndex ) ->
-                                if worklogEntryIndex == editedIndex then
-                                    editView worklogEntryIndex worklogEntry
-                                else
-                                    readView worklogEntryIndex worklogEntry
-
-                            _ ->
+                readOrEditView worklogEntryIndex worklogEntry =
+                    case ( editable, model.editingWorklogEntryIndex ) of
+                        ( True, Just editedIndex ) ->
+                            if worklogEntryIndex == editedIndex then
+                                editView worklogEntryIndex worklogEntry
+                            else
                                 readView worklogEntryIndex worklogEntry
-                in
+
+                        _ ->
+                            readView worklogEntryIndex worklogEntry
+            in
+                ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
                     List.indexedMap
                         (\index worklogEntry ->
                             let
