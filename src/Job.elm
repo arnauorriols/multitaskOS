@@ -163,6 +163,7 @@ type WorklogMsg
     | StartEditing Int
     | StopEditing Int
     | Save Int WorklogEntry
+    | Delete Int
 
 
 type FocusMsg
@@ -212,6 +213,9 @@ update msg model =
 
         Worklog (StopEditing worklogEntryIndex) ->
             ( { model | editingWorklogEntryIndex = Nothing }, Cmd.none )
+
+        Worklog (Delete worklogEntryIndex) ->
+            ( { model | worklog = List.Extra.removeAt worklogEntryIndex model.worklog }, Cmd.none )
 
 
 {-| Focus the input field to enter the title of a new job
@@ -308,15 +312,22 @@ viewWorklog editable model =
                                 ]
 
                         children =
-                            if (not (String.isEmpty worklogEntry)) then
-                                [ text worklogEntry ]
-                            else
-                                [ em
+                            [ (if (not (String.isEmpty worklogEntry)) then
+                                text worklogEntry
+                               else
+                                em
                                     [ style
                                         [ ( "font-size", "0.9em" ) ]
                                     ]
                                     [ text "Nothing much -- click to edit" ]
+                              )
+                            , i
+                                [ id "delete-worklog-entry-icon"
+                                , class "secondary-content material-icons"
+                                , onWithOptions "click" { stopPropagation = True, preventDefault = False } (Json.Decode.succeed (Worklog (Delete worklogEntryIndex)))
                                 ]
+                                [ text "delete" ]
+                            ]
                     in
                         ( parentAttributes, children )
 
