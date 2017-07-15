@@ -295,11 +295,17 @@ viewWorklog editable model =
                 readView worklogEntryIndex worklogEntry =
                     let
                         parentAttributes =
-                            [ onClick (Worklog (StartEditing worklogEntryIndex))
-                            , style
-                                [ ( "cursor", "pointer" )
+                            if editable then
+                                [ onClick (Worklog (StartEditing worklogEntryIndex))
+                                , style
+                                    [ ( "cursor", "pointer" )
+                                    ]
                                 ]
-                            ]
+                            else
+                                [ style
+                                    [ ( "cursor", "default" )
+                                    ]
+                                ]
 
                         children =
                             if (not (String.isEmpty worklogEntry)) then
