@@ -23,3 +23,4 @@
 21. I am hinted about the hotkeys available when in doubt
 22. I can edit a worklog entry just by clicking on it
 23. I can delete a worklog entry
+24. I can start an authenticated session in any machine and continue later in any another machine

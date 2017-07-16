@@ -140,6 +140,7 @@ decodeValue value =
 
 type Msg
     = NoOp
+    | SyncModel Model
     | UnsavedJob UnsavedJobMsg
     | NextJob NextJobMsg
     | ActiveJob ActiveJobMsg
@@ -175,6 +176,9 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
         NoOp ->
+            ( model, Cmd.none )
+
+        SyncModel model ->
             ( model, Cmd.none )
 
         UnsavedJob Save ->
@@ -537,7 +541,10 @@ onEnter action =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.map (HotkeyMsg >> Hotkey) Hotkey.subscriptions
+    Sub.batch
+        [ syncModelFromDatabase (decodeValue >> SyncModel)
+        , Sub.map (HotkeyMsg >> Hotkey) Hotkey.subscriptions
+        ]
 
 
 
@@ -570,3 +577,6 @@ main =
 
 
 port persistModel : Json.Encode.Value -> Cmd msg
+
+
+port syncModelFromDatabase : (Json.Encode.Value -> msg) -> Sub msg
