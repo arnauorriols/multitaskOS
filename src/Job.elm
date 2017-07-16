@@ -321,12 +321,15 @@ viewWorklog editable model =
                                     ]
                                     [ text "Nothing much -- click to edit" ]
                               )
-                            , i
-                                [ id "delete-worklog-entry-icon"
-                                , class "secondary-content material-icons"
-                                , onWithOptions "click" { stopPropagation = True, preventDefault = False } (Json.Decode.succeed (Worklog (Delete worklogEntryIndex)))
-                                ]
-                                [ text "delete" ]
+                            , if editable then
+                                i
+                                    [ id "delete-worklog-entry-icon"
+                                    , class "secondary-content material-icons"
+                                    , onWithOptions "click" { stopPropagation = True, preventDefault = False } (Json.Decode.succeed (Worklog (Delete worklogEntryIndex)))
+                                    ]
+                                    [ text "delete" ]
+                              else
+                                text ""
                             ]
                     in
                         ( parentAttributes, children )
