@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', function() {
 						var model = data.val();
 						if (model) {
 							localModel = localStorage.getItem(STORAGE_KEY);
-							if (!localModel || model.timestamp > localModel.timestamp) {
+							if (!localModel || !localModel.timestamp || (model.timestamp > localModel.timestamp)) {
+								console.log('Model in database is newer than local version. Syncing...');
 								model.unsavedJob.worklog = [];  // Firabase does not store emtpy arrays
 								if (!model.hasOwnProperty('jobQueue')) {
 									model.jobQueue = [];
@@ -38,9 +39,36 @@ document.addEventListener('DOMContentLoaded', function() {
 			}
 		});
 
+		$('.dropdown-content').click(function() {
+			$('.dropdown-button').dropdown('close');
+		});
+
+		var isChromeExtension = window.chrome && chrome.runtime && chrome.runtime.id;
+		if (isChromeExtension) {
+			document.getElementById('login-twitter').parentElement.classList.add('hide');
+			document.getElementById('login-github').parentElement.classList.add('hide');
+		}
 		document.getElementById('login-google').onclick = function () {
-				var provider = new firebase.auth.GoogleAuthProvider();
-				firebase.auth().signInWithPopup(provider);
+				if (isChromeExtension) {
+					chrome.identity.getAuthToken({interactive: true}, function(token) {
+						if (token) {
+							// Authrorize Firebase with the OAuth Access Token.
+							var credential = firebase.auth.GoogleAuthProvider.credential(null, token);
+							firebase.auth().signInWithCredential(credential).catch(function(error) {
+								// The OAuth token might have been invalidated. Lets' remove it from cache.
+								if (error.code === 'auth/invalid-credential') {
+									chrome.identity.removeCachedAuthToken({token: token}, function() {
+									});
+								}
+							});
+						} else {
+							console.error('The OAuth Token was null');
+						}
+					});
+				} else {
+					var provider = new firebase.auth.GoogleAuthProvider();
+					firebase.auth().signInWithPopup(provider);
+				}
 		}
 		document.getElementById('login-twitter').onclick = function () {
 				var provider = new firebase.auth.TwitterAuthProvider();
@@ -54,8 +82,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		document.getElementById('logout').onclick = function () {
 				firebase.auth().signOut().catch(console.log);
 		};
-		$('.dropdown-button').dropdown({hover: true});
-
 
     function compat(model) {
         for (props of [['thread', 'job'], ['threadQueue', 'jobQueue'], ['newThread', 'newJob']]) {
