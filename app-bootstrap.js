@@ -42,6 +42,14 @@ document.addEventListener('DOMContentLoaded', function() {
 				var provider = new firebase.auth.GoogleAuthProvider();
 				firebase.auth().signInWithPopup(provider);
 		}
+		document.getElementById('login-twitter').onclick = function () {
+				var provider = new firebase.auth.TwitterAuthProvider();
+				firebase.auth().signInWithPopup(provider);
+		}
+		document.getElementById('login-github').onclick = function () {
+				var provider = new firebase.auth.GithubAuthProvider();
+				firebase.auth().signInWithPopup(provider);
+		}
 
 		document.getElementById('logout').onclick = function () {
 				firebase.auth().signOut().catch(console.log);
