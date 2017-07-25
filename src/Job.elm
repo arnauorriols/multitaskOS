@@ -41,9 +41,9 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import List.Extra
-import Update.Extra
 import Dom
 import Task
+import EditableElement
 
 
 -- MODEL
@@ -54,8 +54,8 @@ to the journal by means of a worklog form.
 -}
 type alias Model =
     { title : String
+    , titleWidgetState : EditableElement.State
     , worklog : Worklog
-    , editingWorklogEntryIndex : Maybe Int
     }
 
 
@@ -64,7 +64,7 @@ type alias Worklog =
 
 
 type alias WorklogEntry =
-    String
+    ( String, EditableElement.State )
 
 
 {-| Create a new empty Job
@@ -72,8 +72,8 @@ type alias WorklogEntry =
 init : Model
 init =
     { title = ""
+    , titleWidgetState = EditableElement.initialState
     , worklog = initWorklog
-    , editingWorklogEntryIndex = Nothing
     }
 
 
@@ -83,7 +83,7 @@ encode : Model -> Json.Encode.Value
 encode model =
     Json.Encode.object
         [ ( "title", Json.Encode.string model.title )
-        , ( "worklog", Json.Encode.list (List.map Json.Encode.string model.worklog) )
+        , ( "worklog", Json.Encode.list (List.map (Tuple.first >> Json.Encode.string) model.worklog) )
         ]
 
 
@@ -94,8 +94,16 @@ decoder =
     Json.Decode.map3
         Model
         (Json.Decode.field "title" Json.Decode.string)
-        (Json.Decode.field "worklog" (Json.Decode.list Json.Decode.string))
-        (Json.Decode.succeed Nothing)
+        (Json.Decode.succeed EditableElement.initialState)
+        (Json.Decode.field "worklog"
+            (Json.Decode.list
+                (Json.Decode.map2
+                    (,)
+                    (Json.Decode.string)
+                    (Json.Decode.succeed EditableElement.initialState)
+                )
+            )
+        )
 
 
 {-| Assert the Job is valid and can be scheduled
@@ -112,7 +120,7 @@ initWorklog =
 
 initWorklogEntry : WorklogEntry
 initWorklogEntry =
-    ""
+    ( "", EditableElement.initialState )
 
 
 savedWorklog : Worklog -> Worklog
@@ -135,14 +143,48 @@ unsavedWorklogEntry worklog =
             initWorklogEntry
 
 
-editWorklogEntry : Int -> WorklogEntry -> Worklog -> Worklog
-editWorklogEntry index worklogEntry worklog =
+updateWorklogEntry : Int -> WorklogEntry -> Worklog -> Worklog
+updateWorklogEntry index worklogEntry worklog =
     case List.Extra.setAt index worklogEntry worklog of
         Just newWorklog ->
             newWorklog
 
         Nothing ->
             worklogEntry :: worklog
+
+
+editWorklogEntryContent : Int -> String -> Worklog -> Worklog
+editWorklogEntryContent index worklogEntryContent worklog =
+    let
+        worklogEntryWidgetState =
+            case List.Extra.getAt index worklog of
+                Just worklogEntry ->
+                    Tuple.second worklogEntry
+
+                Nothing ->
+                    EditableElement.initialState
+
+        worklogEntry =
+            ( worklogEntryContent, worklogEntryWidgetState )
+    in
+        updateWorklogEntry index worklogEntry worklog
+
+
+updateWorklogEntryWidgetState : Int -> EditableElement.State -> Worklog -> Worklog
+updateWorklogEntryWidgetState index worklogEntryWidgetState worklog =
+    let
+        worklogEntryContent =
+            case List.Extra.getAt index worklog of
+                Just worklogEntry ->
+                    Tuple.first worklogEntry
+
+                Nothing ->
+                    ""
+
+        worklogEntry =
+            ( worklogEntryContent, worklogEntryWidgetState )
+    in
+        updateWorklogEntry index worklogEntry worklog
 
 
 
@@ -154,16 +196,16 @@ editWorklogEntry index worklogEntry worklog =
 type Msg
     = NoOp
     | EditTitle String
+    | TitleWidget ( Cmd Msg, EditableElement.State )
     | Worklog WorklogMsg
     | Focus FocusMsg
 
 
 type WorklogMsg
     = Add
-    | StartEditing Int
-    | StopEditing Int
-    | Save Int WorklogEntry
+    | Save Int String
     | Delete Int
+    | WorklogEntryWidget Int ( Cmd Msg, EditableElement.State )
 
 
 type FocusMsg
@@ -201,21 +243,20 @@ update msg model =
         EditTitle newTitle ->
             ( { model | title = newTitle }, Cmd.none )
 
+        TitleWidget ( cmdNextTitleWidgetState, titleWidgetState ) ->
+            ( { model | titleWidgetState = titleWidgetState }, cmdNextTitleWidgetState )
+
         Worklog Add ->
             ( { model | worklog = initWorklogEntry :: model.worklog }, Cmd.none )
 
-        Worklog (Save index worklogEntry) ->
-            ( { model | worklog = editWorklogEntry index worklogEntry model.worklog }, Cmd.none )
-
-        Worklog (StartEditing worklogEntryIndex) ->
-            ( { model | editingWorklogEntryIndex = Just worklogEntryIndex }, Cmd.none )
-                |> (Update.Extra.andThen update (Focus (Attempt "editing-worklog-entry")))
-
-        Worklog (StopEditing worklogEntryIndex) ->
-            ( { model | editingWorklogEntryIndex = Nothing }, Cmd.none )
+        Worklog (Save index worklogEntryContent) ->
+            ( { model | worklog = editWorklogEntryContent index worklogEntryContent model.worklog }, Cmd.none )
 
         Worklog (Delete worklogEntryIndex) ->
             ( { model | worklog = List.Extra.removeAt worklogEntryIndex model.worklog }, Cmd.none )
+
+        Worklog (WorklogEntryWidget index ( cmd, state )) ->
+            ( { model | worklog = updateWorklogEntryWidgetState index state model.worklog }, cmd )
 
 
 {-| Focus the input field to enter the title of a new job
@@ -258,7 +299,17 @@ viewTitleForm placeholder model =
 -}
 viewTitle : Model -> Html Msg
 viewTitle model =
-    h4 [ class "grey-text text-darken-2" ] [ text model.title ]
+    let
+        config =
+            EditableElement.config
+                { readModeTag = EditableElement.htmlElement "job-title" span
+                , editModeTag = EditableElement.htmlElement "job-title-edit" input
+                , editMsg = EditTitle
+                , stateMsg = TitleWidget
+                , editEnabled = True
+                }
+    in
+        h4 [ class "grey-text text-darken-2" ] [ EditableElement.view config model.titleWidgetState model.title ]
 
 
 {-| Present the list of journal entries of a job
@@ -296,93 +347,58 @@ viewWorklog editable model =
 
         worklogs ->
             let
-                readView worklogEntryIndex worklogEntry =
-                    let
-                        parentAttributes =
-                            if editable then
-                                [ onClick (Worklog (StartEditing worklogEntryIndex))
-                                , style
-                                    [ ( "cursor", "pointer" )
-                                    ]
-                                ]
-                            else
-                                [ style
-                                    [ ( "cursor", "default" )
-                                    ]
-                                ]
+                deleteIcon worklogEntryIndex =
+                    i
+                        [ id "delete-worklog-entry-icon"
+                        , class "secondary-content material-icons"
+                        , onWithOptions
+                            "click"
+                            { stopPropagation = True, preventDefault = False }
+                            (Json.Decode.succeed (Worklog (Delete worklogEntryIndex)))
+                        ]
+                        [ text "delete" ]
 
-                        children =
-                            [ (if (not (String.isEmpty worklogEntry)) then
-                                text worklogEntry
-                               else
-                                em
-                                    [ style
-                                        [ ( "font-size", "0.9em" ) ]
-                                    ]
-                                    [ text "Nothing much -- click to edit" ]
-                              )
-                            , if editable then
-                                i
-                                    [ id "delete-worklog-entry-icon"
-                                    , class "secondary-content material-icons"
-                                    , onWithOptions "click" { stopPropagation = True, preventDefault = False } (Json.Decode.succeed (Worklog (Delete worklogEntryIndex)))
-                                    ]
-                                    [ text "delete" ]
-                              else
-                                text ""
-                            ]
-                    in
-                        ( parentAttributes, children )
+                readModeElement worklogEntryIndex =
+                    EditableElement.htmlElement
+                        "worklog-entry"
+                        (\attributes children ->
+                            let
+                                finalAttributes =
+                                    attributes ++ [ class "collection-item" ]
 
-                editView worklogEntryIndex worklogEntry =
-                    let
-                        parentAttributes =
-                            []
+                                finalChildren =
+                                    if editable then
+                                        children ++ [ deleteIcon worklogEntryIndex ]
+                                    else
+                                        children
+                            in
+                                li finalAttributes finalChildren
+                        )
 
-                        children =
-                            [ input
-                                ([ id "editing-worklog-entry"
-                                 , style
-                                    [ ( "border-bottom", "none" )
-                                    , ( "height", "1.5em" )
-                                    , ( "margin-bottom", "0" )
-                                    ]
-                                 , type_ "text"
-                                 , value worklogEntry
-                                 , onInput (Save worklogEntryIndex >> Worklog)
-                                 , onBlur (Worklog (StopEditing worklogEntryIndex))
-                                 , onEnter (Worklog (StopEditing worklogEntryIndex))
-                                 ]
-                                )
-                                []
-                            ]
-                    in
-                        ( parentAttributes, children )
-
-                readOrEditView worklogEntryIndex worklogEntry =
-                    case ( editable, model.editingWorklogEntryIndex ) of
-                        ( True, Just editedIndex ) ->
-                            if worklogEntryIndex == editedIndex then
-                                editView worklogEntryIndex worklogEntry
-                            else
-                                readView worklogEntryIndex worklogEntry
-
-                        _ ->
-                            readView worklogEntryIndex worklogEntry
+                editModeElement =
+                    EditableElement.htmlElement
+                        "worklog-entry-edit"
+                        (\attributes children ->
+                            li [ class "collection-item" ] [ input attributes children ]
+                        )
             in
                 ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
                     List.indexedMap
-                        (\index worklogEntry ->
+                        (\index ( worklogEntryContent, worklogEntryWidgetState ) ->
                             let
                                 indexCountingUnsavedEntry =
                                     index + 1
 
-                                ( parentAttributes, children ) =
-                                    readOrEditView indexCountingUnsavedEntry worklogEntry
+                                config =
+                                    EditableElement.config
+                                        { readModeTag = readModeElement indexCountingUnsavedEntry
+                                        , editModeTag = editModeElement
+                                        , editMsg = Save indexCountingUnsavedEntry >> Worklog
+                                        , stateMsg = WorklogEntryWidget indexCountingUnsavedEntry >> Worklog
+                                        , editEnabled = editable
+                                        }
                             in
-                                li
-                                    ([ class "collection-item" ] ++ parentAttributes)
-                                    children
+                                EditableElement.view config worklogEntryWidgetState worklogEntryContent
                         )
                         worklogs
 
@@ -395,7 +411,7 @@ viewWorklogForm buttonText { worklog } =
         [ div [ class "input-field col s9" ]
             [ input
                 [ id "input-worklog"
-                , value (unsavedWorklogEntry worklog)
+                , value (Tuple.first (unsavedWorklogEntry worklog))
                 , type_ "text"
                 , onInput (Save 0 >> Worklog)
                 , onEnter (Worklog Add)

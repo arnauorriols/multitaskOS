@@ -381,7 +381,7 @@ viewNextScheduledJobTitle model =
     let
         jobTitle =
             case List.head model.jobQueue of
-                Just ( _, job ) ->
+                Just ( jobStatus, job ) ->
                     Job.viewTitle job |> Html.map (NextJobMsg >> NextJob)
 
                 Nothing ->
