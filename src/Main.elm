@@ -1,11 +1,5 @@
 port module Main exposing (Model, main)
 
-{-| Multitask OS.
-
-@docs Model, main
-
--}
-
 import Debug
 import Json.Decode
 import Json.Encode
@@ -24,7 +18,6 @@ import Job
 {-| -}
 type alias Model =
     { jobQueue : JobQueue
-    , unsavedJob : Job.Model
     , hotkeysPressed : Hotkey.Model
     , hintsStatus : HotkeyHintStatus
     }
@@ -57,7 +50,6 @@ hotkeyHintOrReal hotkeyHintStatus hotkeyHint realText =
 init : Model
 init =
     { jobQueue = []
-    , unsavedJob = Job.init
     , hotkeysPressed = Hotkey.init
     , hintsStatus = Hidden
     }
@@ -87,7 +79,6 @@ encode model =
     in
         Json.Encode.object
             [ ( "jobQueue", Json.Encode.list jobQueue )
-            , ( "unsavedJob", Job.encode model.unsavedJob )
             ]
 
 
@@ -116,10 +107,9 @@ decoder =
                     (Json.Decode.index 1 Job.decoder)
                 )
     in
-        Json.Decode.map4
+        Json.Decode.map3
             Model
             (Json.Decode.field "jobQueue" jobQueueDecoder)
-            (Json.Decode.field "unsavedJob" Job.decoder)
             (Json.Decode.succeed Hotkey.init)
             (Json.Decode.succeed Hidden)
 
@@ -141,15 +131,10 @@ decodeValue value =
 type Msg
     = NoOp
     | SyncModel Model
-    | UnsavedJob UnsavedJobMsg
+    | NewJob
     | NextJob NextJobMsg
     | ActiveJob ActiveJobMsg
     | Hotkey HotkeyMsg
-
-
-type UnsavedJobMsg
-    = Save
-    | UnsavedJobMsg Job.Msg
 
 
 type NextJobMsg
@@ -181,36 +166,18 @@ update action model =
         SyncModel model ->
             ( model, Cmd.none )
 
-        UnsavedJob Save ->
-            let
-                saveUnsavedIntoQueue model =
-                    case List.Extra.uncons model.jobQueue of
-                        Just ( ( Active, activeJob ), restQueue ) ->
-                            { model | jobQueue = ( Active, activeJob ) :: ( Queued, model.unsavedJob ) :: restQueue }
-
-                        _ ->
-                            { model | jobQueue = ( Queued, model.unsavedJob ) :: model.jobQueue }
-
-                flushUnsaved model =
-                    { model | unsavedJob = Job.init }
-            in
-                if Job.isValid model.unsavedJob then
-                    ( model
-                        |> saveUnsavedIntoQueue
-                        |> flushUnsaved
-                    , Cmd.none
-                    )
-                else
+        NewJob ->
+            case List.head model.jobQueue of
+                Just ( Active, _ ) ->
                     ( model, Cmd.none )
 
-        UnsavedJob (UnsavedJobMsg jobMsg) ->
-            let
-                ( newUnsavedJob, newJobCmd ) =
-                    Job.update jobMsg model.unsavedJob
-            in
-                ( { model | unsavedJob = newUnsavedJob }
-                , Cmd.map (UnsavedJobMsg >> UnsavedJob) newJobCmd
-                )
+                _ ->
+                    let
+                        newJob =
+                            Job.init
+                    in
+                        ( { model | jobQueue = ( Queued, newJob ) :: model.jobQueue }, Cmd.none )
+                            |> Update.Extra.andThen update (NextJob (NextJobMsg Job.triggerTitleEditMode))
 
         NextJob Execute ->
             case List.Extra.uncons model.jobQueue of
@@ -292,7 +259,7 @@ update action model =
                 nextMsg =
                     case hotkey of
                         Hotkey.N ->
-                            UnsavedJob (UnsavedJobMsg Job.focusTitleForm)
+                            NewJob
 
                         Hotkey.G ->
                             NextJob Execute
@@ -343,15 +310,12 @@ update action model =
 view : Model -> Html Msg
 view model =
     viewPort
-        [ sideSection
-            [ viewNewJobForm model
-            , viewHotkeyHintsToggle model
-            ]
-        , mainSection
+        [ mainSection
             [ viewNextScheduledJobTitle model
             , viewContextSwitchingControls model
             , viewNextScheduledJobWorklog model
             , viewActiveJobWorklogForm model
+            , viewHotkeyHintsToggle model
             ]
         ]
 
@@ -362,16 +326,9 @@ viewPort elements =
         [ div [ class "row flex-container flex-contained" ] elements ]
 
 
-sideSection : List (Html Msg) -> Html Msg
-sideSection elements =
-    div [ class "col s4 flex-container flex-contained" ]
-        [ div [ class "section flex-container flex-contained" ] elements
-        ]
-
-
 mainSection : List (Html Msg) -> Html Msg
 mainSection elements =
-    div [ class "col s8 flex-container flex-contained" ]
+    div [ class "col s12 flex-container flex-contained" ]
         [ div [ class "section flex-container flex-contained" ] elements
         ]
 
@@ -379,38 +336,85 @@ mainSection elements =
 viewNextScheduledJobTitle : Model -> Html Msg
 viewNextScheduledJobTitle model =
     let
-        jobTitle =
-            case List.head model.jobQueue of
-                Just ( jobStatus, job ) ->
-                    Job.viewTitle job |> Html.map (NextJobMsg >> NextJob)
+        help =
+            let
+                bulletList =
+                    ul [ class "browser-default" ]
+
+                bullet content =
+                    li
+                        [ class "browser-default"
+                        , style
+                            [ ( "list-style-type", "disc" ) ]
+                        ]
+                        [ text content ]
+            in
+                p [ class "left-align card-panel teal lighten-4 grey-text text-darken-3" ]
+                    [ text "Looks like you are new around here! Let me give you a few hints to get started:"
+                    , bulletList
+                        [ bullet "The goal of this tool is to help you manage the overhead of doing multiple tasks at the same time"
+                        , bullet "Tasks in MultitaskOS are called \"jobs\". Click on the button above to create your first job"
+                        , bullet "New jobs are scheduled to a queue. MultitaskOS will take care of deciding for you which is the next job you have to work on"
+                        , bullet "Each job has a journal to keep a detailed log of any relevant information you might need in the future when coming back to it"
+                        , bullet "You can yield a job at any time, and resume working on the next one"
+                        , bullet "Thanks to the journal, you can dump or load the context of a job at any time, so that you don't need to keep it in your head!"
+                        , bullet "Find out about the hotkeys available by clicking on the help icon on the left-bottom corner, or using the ALT+H hotkey"
+                        ]
+                    ]
+
+        viewJobTile job =
+            Job.viewTitle job |> Html.map (NextJobMsg >> NextJob)
+
+        newJobButton =
+            span
+                []
+                [ a
+                    [ class "right btn-floating waves-effect waves-light"
+                    , onClick NewJob
+                    ]
+                    [ i
+                        [ class "material-icons" ]
+                        [ text "add" ]
+                    ]
+                , span
+                    [ class "right"
+                    , style
+                        [ ( "position", "relative" )
+                        , ( "top", "0.5rem" )
+                        , ( "left", "-0.22rem" )
+                        ]
+                    ]
+                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+H" "") ]
+                ]
+    in
+        div [ class "row valign-wrapper" ]
+            (case List.head model.jobQueue of
+                Just ( Queued, job ) ->
+                    [ span
+                        [ class "col s11" ]
+                        [ viewJobTile job ]
+                    , span
+                        [ class "col s1" ]
+                        [ newJobButton ]
+                    ]
+
+                Just ( Active, job ) ->
+                    [ span
+                        [ class "col s12" ]
+                        [ viewJobTile job ]
+                    ]
 
                 Nothing ->
-                    let
-                        bulletList =
-                            ul [ class "browser-default" ]
-
-                        bullet content =
-                            li
-                                [ class "browser-default"
-                                , style
-                                    [ ( "list-style-type", "disc" ) ]
-                                ]
-                                [ text content ]
-                    in
-                        p [ class "card-panel teal lighten-4 grey-text text-darken-3" ]
-                            [ text "Looks like you are new around here! Let me give you a few hints to get started:"
-                            , bulletList
-                                [ bullet "The goal of this tool is to help you manage the overhead of doing multiple tasks at the same time"
-                                , bullet "Tasks in MultitaskOS are called \"jobs\". Add a new job using the form at the left"
-                                , bullet "New jobs are scheduled to a queue. MultitaskOS will take care of deciding for you which is the next job you have to work on"
-                                , bullet "Each job has a journal to keep a detailed log of any relevant information you might need in the future when coming back to it"
-                                , bullet "You can yield a job at any time, and resume working on the next one"
-                                , bullet "Thanks to the journal, you can dump or load the context of a job at any time, so that you don't need to keep it in your head!"
-                                , bullet "Find out about the hotkeys available by clicking on the help icon on the left-bottom corner, or using the ALT+H hotkey"
-                                ]
+                    [ div [ class "col s12 center-align" ]
+                        [ button
+                            [ class "row btn btn-large waves-effect waves-light"
+                            , onClick NewJob
                             ]
-    in
-        jobTitle
+                            [ text "Create your first job" ]
+                        , help
+                        ]
+                    ]
+            )
 
 
 viewNextScheduledJobWorklog : Model -> Html Msg
@@ -435,24 +439,6 @@ viewActiveJobWorklogForm model =
 
         _ ->
             Html.text ""
-
-
-viewNewJobForm : Model -> Html Msg
-viewNewJobForm model =
-    let
-        placeholder =
-            hotkeyHintOrReal model.hintsStatus "Alt+N" "New job"
-    in
-        div
-            [ onEnter (UnsavedJob Save)
-            ]
-            [ Job.viewTitleForm placeholder model.unsavedJob |> Html.map (UnsavedJobMsg >> UnsavedJob)
-            , button
-                [ class "waves-effect waves-light btn"
-                , onClick (UnsavedJob Save)
-                ]
-                [ text (hotkeyHintOrReal model.hintsStatus "Enter" "Schedule") ]
-            ]
 
 
 viewHotkeyHintsToggle : Model -> Html Msg

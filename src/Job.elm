@@ -7,32 +7,13 @@ module Job
         , decoder
         , isValid
         , update
-        , focusTitleForm
         , focusWorklogForm
+        , triggerTitleEditMode
         , viewTitle
         , viewTitleForm
         , viewWorklog
         , viewWorklogForm
         )
-
-{-| A Job is an specific task or goal scheduled to be accomplished.
-
-
-# Model
-
-@docs Model, init, encode, decoder, isValid
-
-
-# Business Logic
-
-@docs Msg, update, focusTitleForm, focusWorklogForm
-
-
-# Presentation
-
-@docs viewTitle, viewTitleForm, viewWorklog, viewWorklogForm
-
--}
 
 import String
 import Json.Decode
@@ -259,18 +240,16 @@ update msg model =
             ( { model | worklog = updateWorklogEntryWidgetState index state model.worklog }, cmd )
 
 
-{-| Focus the input field to enter the title of a new job
--}
-focusTitleForm : Msg
-focusTitleForm =
-    Focus (Attempt "input-title")
-
-
 {-| Focus the input field to enter a new worklog entry
 -}
 focusWorklogForm : Msg
 focusWorklogForm =
     Focus (Attempt "input-worklog")
+
+
+triggerTitleEditMode : Msg
+triggerTitleEditMode =
+    EditableElement.triggerEditMode "title-edit" TitleWidget
 
 
 
@@ -302,8 +281,8 @@ viewTitle model =
     let
         config =
             EditableElement.config
-                { readModeTag = EditableElement.htmlElement "job-title" span
-                , editModeTag = EditableElement.htmlElement "job-title-edit" input
+                { readModeTag = EditableElement.htmlElement "title" span
+                , editModeTag = EditableElement.htmlElement "title-edit" input
                 , editMsg = EditTitle
                 , stateMsg = TitleWidget
                 , editEnabled = True

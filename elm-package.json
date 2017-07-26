@@ -7,8 +7,6 @@
         "src"
     ],
     "exposed-modules": [
-        "Main",
-        "Job"
     ],
     "native-modules": true,
     "dependencies": {

@@ -8,36 +8,38 @@ document.addEventListener('DOMContentLoaded', function() {
       storageBucket: "multitaskos-bdde5.appspot.com",
       messagingSenderId: "690617050772"
     };
-    firebase.initializeApp(config);
+		if (window.firebase) {
+			firebase.initializeApp(config);
 
-		firebase.auth().onAuthStateChanged(function(user) {
-			if (user) {
-					document.getElementById('logout').classList.remove('hide');
-					document.getElementById('login').classList.add('hide');
-					database.ref('users-data/' + user.uid).once('value').then(function(data) {
-						var model = data.val();
-						if (model) {
-							localModel = localStorage.getItem(STORAGE_KEY);
-							if (!localModel || !localModel.timestamp || (model.timestamp > localModel.timestamp)) {
-								console.log('Model in database is newer than local version. Syncing...');
-								model.unsavedJob.worklog = [];  // Firabase does not store emtpy arrays
-								if (!model.hasOwnProperty('jobQueue')) {
-									model.jobQueue = [];
-								}
-								model.jobQueue.forEach(function (jobTuple) {
-									if (!jobTuple[1].hasOwnProperty('worklog')) {
-										jobTuple[1].worklog = [];
+			firebase.auth().onAuthStateChanged(function(user) {
+				if (user) {
+						document.getElementById('logout').classList.remove('hide');
+						document.getElementById('login').classList.add('hide');
+						database.ref('users-data/' + user.uid).once('value').then(function(data) {
+							var model = data.val();
+							if (model) {
+								localModel = localStorage.getItem(STORAGE_KEY);
+								if (!localModel || !localModel.timestamp || (model.timestamp > localModel.timestamp)) {
+									console.log('Model in database is newer than local version. Syncing...');
+									model.unsavedJob.worklog = [];  // Firabase does not store emtpy arrays
+									if (!model.hasOwnProperty('jobQueue')) {
+										model.jobQueue = [];
 									}
-								});
-								multitaskos.ports.syncModelFromDatabase.send(model);
+									model.jobQueue.forEach(function (jobTuple) {
+										if (!jobTuple[1].hasOwnProperty('worklog')) {
+											jobTuple[1].worklog = [];
+										}
+									});
+									multitaskos.ports.syncModelFromDatabase.send(model);
+								}
 							}
-						}
-					});
-			} else {
-					document.getElementById('logout').classList.add('hide');
-					document.getElementById('login').classList.remove('hide');
-			}
-		});
+						});
+				} else {
+						document.getElementById('logout').classList.add('hide');
+						document.getElementById('login').classList.remove('hide');
+				}
+			});
+		}
 
 		$('.dropdown-content').click(function() {
 			$('.dropdown-button').dropdown('close');
@@ -114,8 +116,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-			  if (model.unsavedJob.hasOwnProperty('threadName')) {
-					  model.usavedJob = migrateJob(model.unsavedJob);
+			  if (model.hasOwnProperty('unsavedJob')) {
+					delete model['usavedJob'];
 				}
 
 				if (model.hasOwnProperty('job')) {

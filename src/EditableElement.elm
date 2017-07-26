@@ -4,6 +4,7 @@ module EditableElement
         , config
         , State
         , initialState
+        , triggerEditMode
         , view
         )
 
@@ -70,6 +71,16 @@ initialState =
     Viewing
 
 
+triggerEditMode : String -> (( Cmd msg, State ) -> msg) -> msg
+triggerEditMode editTagId stateMsg =
+    let
+        focusCmd : String -> (( Cmd msg, State ) -> msg) -> Cmd msg
+        focusCmd editTagId stateMsg =
+            Task.attempt (Focused >> Editing >> (,) Cmd.none >> stateMsg) (Dom.focus editTagId)
+    in
+        (stateMsg ( focusCmd editTagId stateMsg, Editing Unfocused ))
+
+
 view : Config msg -> State -> String -> Html.Html msg
 view (Config { readModeTag, editModeTag, editMsg, stateMsg, editEnabled }) state content =
     let
@@ -101,18 +112,14 @@ view (Config { readModeTag, editModeTag, editMsg, stateMsg, editEnabled }) state
                     []
 
             ( True, Viewing ) ->
-                let
-                    focusCmd =
-                        Task.attempt (Focused >> Editing >> (,) Cmd.none >> stateMsg) (Dom.focus editTagId)
-                in
-                    readTag
-                        [ Html.Attributes.id readTagId
-                        , Html.Events.onClick (stateMsg ( focusCmd, Editing Unfocused ))
-                        , Html.Attributes.style
-                            [ ( "cursor", "pointer" )
-                            ]
+                readTag
+                    [ Html.Attributes.id readTagId
+                    , Html.Events.onClick (triggerEditMode editTagId stateMsg)
+                    , Html.Attributes.style
+                        [ ( "cursor", "pointer" )
                         ]
-                        [ readViewContent ]
+                    ]
+                    [ readViewContent ]
 
             ( False, _ ) ->
                 readTag
