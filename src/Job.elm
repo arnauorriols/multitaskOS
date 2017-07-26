@@ -388,7 +388,7 @@ viewWorklog editable model =
 viewWorklogForm : String -> Model -> Html Msg
 viewWorklogForm buttonText { worklog } =
     div []
-        [ div [ class "input-field col s9" ]
+        [ div [ class "input-field col s10" ]
             [ input
                 [ id "input-worklog"
                 , value (Tuple.first (unsavedWorklogEntry worklog))
@@ -400,9 +400,9 @@ viewWorklogForm buttonText { worklog } =
             , label [ for "input-worklog" ]
                 [ text "New journal entry" ]
             ]
-        , div [ class "input-field col s3" ]
+        , div [ class "input-field col s2" ]
             [ button
-                [ class "waves-effect waves-light btn"
+                [ class "right waves-effect waves-light btn"
                 , type_ "submit"
                 , onClick (Worklog Add)
                 ]
