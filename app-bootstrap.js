@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
 								localModel = localStorage.getItem(STORAGE_KEY);
 								if (!localModel || !localModel.timestamp || (model.timestamp > localModel.timestamp)) {
 									console.log('Model in database is newer than local version. Syncing...');
-									model.unsavedJob.worklog = [];  // Firabase does not store emtpy arrays
 									if (!model.hasOwnProperty('jobQueue')) {
 										model.jobQueue = [];
 									}
