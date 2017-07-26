@@ -13,6 +13,7 @@ import Html.Attributes
 import Html.Events
 import Task
 import Dom
+import Utils
 
 
 type alias HtmlTag msg =
@@ -107,6 +108,7 @@ view (Config { readModeTag, editModeTag, editMsg, stateMsg, editEnabled }) state
                      , Html.Attributes.value content
                      , Html.Events.onInput editMsg
                      , Html.Events.onBlur (stateMsg ( Cmd.none, Viewing ))
+                     , Utils.onEnter (stateMsg ( Cmd.none, state )) (stateMsg ( Cmd.none, Viewing ))
                      ]
                     )
                     []

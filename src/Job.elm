@@ -25,6 +25,7 @@ import List.Extra
 import Dom
 import Task
 import EditableElement
+import Utils
 
 
 -- MODEL
@@ -393,7 +394,7 @@ viewWorklogForm buttonText { worklog } =
                 , value (Tuple.first (unsavedWorklogEntry worklog))
                 , type_ "text"
                 , onInput (Save 0 >> Worklog)
-                , onEnter (Worklog Add)
+                , Utils.onEnter NoOp (Worklog Add)
                 ]
                 []
             , label [ for "input-worklog" ]
@@ -408,15 +409,3 @@ viewWorklogForm buttonText { worklog } =
                 [ text buttonText ]
             ]
         ]
-
-
-onEnter : Msg -> Attribute Msg
-onEnter action =
-    let
-        tagger code =
-            if code == 13 then
-                action
-            else
-                NoOp
-    in
-        on "keydown" <| Json.Decode.map tagger keyCode

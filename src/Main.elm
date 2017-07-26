@@ -513,18 +513,6 @@ viewContextSwitchingControls model =
                 []
 
 
-onEnter : Msg -> Attribute Msg
-onEnter action =
-    let
-        tagger code =
-            if code == 13 then
-                action
-            else
-                NoOp
-    in
-        on "keydown" <| Json.Decode.map tagger keyCode
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
