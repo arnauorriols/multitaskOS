@@ -17,7 +17,8 @@ import Job
 
 {-| -}
 type alias Model =
-    { jobQueue : JobQueue
+    { jobQueue : List Job.Model
+    , nextJobStatus : JobStatus
     , hotkeysPressed : Hotkey.Model
     , hintsStatus : HotkeyHintStatus
     }
@@ -26,10 +27,6 @@ type alias Model =
 type JobStatus
     = Active
     | Queued
-
-
-type alias JobQueue =
-    List ( JobStatus, Job.Model )
 
 
 type HotkeyHintStatus
@@ -51,6 +48,7 @@ init : Model
 init =
     { jobQueue = []
     , hotkeysPressed = Hotkey.init
+    , nextJobStatus = Queued
     , hintsStatus = Hidden
     }
 
@@ -67,18 +65,10 @@ encode model =
                     Queued ->
                         "Queued"
                 )
-
-        encodeJobTuple ( jobStatus, job ) =
-            Json.Encode.list
-                [ encodeStatus jobStatus
-                , Job.encode job
-                ]
-
-        jobQueue =
-            List.map encodeJobTuple model.jobQueue
     in
         Json.Encode.object
-            [ ( "jobQueue", Json.Encode.list jobQueue )
+            [ ( "jobQueue", Json.Encode.list (List.map Job.encode model.jobQueue) )
+            , ( "nextJobStatus", encodeStatus model.nextJobStatus )
             ]
 
 
@@ -98,18 +88,11 @@ decoder =
 
         jobStatusDecoder =
             (Json.Decode.map jobStatusDeserializer Json.Decode.string)
-
-        jobQueueDecoder =
-            Json.Decode.list
-                (Json.Decode.map2
-                    (,)
-                    (Json.Decode.index 0 jobStatusDecoder)
-                    (Json.Decode.index 1 Job.decoder)
-                )
     in
-        Json.Decode.map3
+        Json.Decode.map4
             Model
-            (Json.Decode.field "jobQueue" jobQueueDecoder)
+            (Json.Decode.field "jobQueue" (Json.Decode.list Job.decoder))
+            (Json.Decode.field "nextJobStatus" jobStatusDecoder)
             (Json.Decode.succeed Hotkey.init)
             (Json.Decode.succeed Hidden)
 
@@ -167,38 +150,33 @@ update action model =
             ( model, Cmd.none )
 
         NewJob ->
-            case List.head model.jobQueue of
-                Just ( Active, _ ) ->
+            case model.nextJobStatus of
+                Active ->
                     ( model, Cmd.none )
 
-                _ ->
+                Queued ->
                     let
                         newJob =
                             Job.init
                     in
-                        ( { model | jobQueue = ( Queued, newJob ) :: model.jobQueue }, Cmd.none )
+                        ( { model | jobQueue = newJob :: model.jobQueue }, Cmd.none )
                             |> Update.Extra.andThen update (NextJob (NextJobMsg Job.triggerTitleEditMode))
 
         NextJob Execute ->
-            case List.Extra.uncons model.jobQueue of
-                Just ( ( Queued, job ), restQueue ) ->
-                    ( { model | jobQueue = ( Active, job ) :: restQueue }, Cmd.none )
-                        |> Update.Extra.andThen update (ActiveJob (ActiveJobMsg Job.focusWorklogForm))
-
-                _ ->
-                    ( model, Cmd.none )
+            ( { model | nextJobStatus = Active }, Cmd.none )
+                |> Update.Extra.andThen update (ActiveJob (ActiveJobMsg Job.focusWorklogForm))
 
         NextJob Skip ->
-            case List.Extra.uncons model.jobQueue of
-                Just ( ( Queued, job ), restQueue ) ->
-                    ( { model | jobQueue = restQueue ++ [ ( Queued, job ) ] }, Cmd.none )
+            case ( model.nextJobStatus, List.Extra.uncons model.jobQueue ) of
+                ( Queued, Just ( job, restQueue ) ) ->
+                    ( { model | jobQueue = restQueue ++ [ job ] }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
 
         NextJob Drop ->
-            case List.Extra.uncons model.jobQueue of
-                Just ( ( Queued, job ), restQueue ) ->
+            case ( model.nextJobStatus, List.Extra.uncons model.jobQueue ) of
+                ( Queued, Just ( job, restQueue ) ) ->
                     ( { model | jobQueue = restQueue }, Cmd.none )
 
                 _ ->
@@ -206,42 +184,44 @@ update action model =
 
         NextJob (NextJobMsg jobMsg) ->
             case List.Extra.uncons model.jobQueue of
-                Just ( ( jobStatus, job ), restQueue ) ->
+                Just ( job, restQueue ) ->
                     let
                         ( job2, cmd ) =
                             Job.update jobMsg job
                     in
-                        ( { model | jobQueue = ( jobStatus, job2 ) :: restQueue }
+                        ( { model | jobQueue = job2 :: restQueue }
                         , Cmd.map (NextJobMsg >> NextJob) cmd
                         )
 
-                _ ->
+                Nothing ->
                     ( model, Cmd.none )
 
         ActiveJob Yield ->
-            case List.Extra.uncons model.jobQueue of
-                Just ( ( Active, job ), restQueue ) ->
-                    ( { model | jobQueue = restQueue ++ [ ( Queued, job ) ] }, Cmd.none )
+            case model.nextJobStatus of
+                Active ->
+                    ( { model | nextJobStatus = Queued }, Cmd.none )
+                        |> Update.Extra.andThen update (NextJob Skip)
 
                 _ ->
                     ( model, Cmd.none )
 
         ActiveJob Finish ->
-            case List.Extra.uncons model.jobQueue of
-                Just ( ( Active, job ), restQueue ) ->
-                    ( { model | jobQueue = restQueue }, Cmd.none )
+            case model.nextJobStatus of
+                Active ->
+                    ( { model | nextJobStatus = Queued }, Cmd.none )
+                        |> Update.Extra.andThen update (NextJob Drop)
 
                 _ ->
                     ( model, Cmd.none )
 
         ActiveJob (ActiveJobMsg jobMsg) ->
-            case List.Extra.uncons model.jobQueue of
-                Just ( ( Active, job ), restQueue ) ->
+            case ( model.nextJobStatus, List.Extra.uncons model.jobQueue ) of
+                ( Active, Just ( job, restQueue ) ) ->
                     let
                         ( job2, cmd ) =
                             Job.update jobMsg job
                     in
-                        ( { model | jobQueue = ( Active, job2 ) :: restQueue }
+                        ( { model | jobQueue = job2 :: restQueue }
                         , Cmd.map (ActiveJobMsg >> ActiveJob) cmd
                         )
 
@@ -388,8 +368,8 @@ viewNextScheduledJobTitle model =
                 ]
     in
         div [ class "row valign-wrapper" ]
-            (case List.head model.jobQueue of
-                Just ( Queued, job ) ->
+            (case ( model.nextJobStatus, List.head model.jobQueue ) of
+                ( Queued, Just job ) ->
                     [ span
                         [ class "col s11" ]
                         [ viewJobTile job ]
@@ -398,13 +378,13 @@ viewNextScheduledJobTitle model =
                         [ newJobButton ]
                     ]
 
-                Just ( Active, job ) ->
+                ( Active, Just job ) ->
                     [ span
                         [ class "col s12" ]
                         [ viewJobTile job ]
                     ]
 
-                Nothing ->
+                ( _, Nothing ) ->
                     [ div [ class "col s12 center-align" ]
                         [ button
                             [ class "row btn btn-large waves-effect waves-light"
@@ -420,8 +400,8 @@ viewNextScheduledJobTitle model =
 viewNextScheduledJobWorklog : Model -> Html Msg
 viewNextScheduledJobWorklog model =
     case List.head model.jobQueue of
-        Just ( jobStatus, job ) ->
-            Job.viewWorklog (jobStatus == Active) job |> Html.map (NextJobMsg >> NextJob)
+        Just job ->
+            Job.viewWorklog (model.nextJobStatus == Active) job |> Html.map (NextJobMsg >> NextJob)
 
         Nothing ->
             Html.text ""
@@ -429,8 +409,8 @@ viewNextScheduledJobWorklog model =
 
 viewActiveJobWorklogForm : Model -> Html Msg
 viewActiveJobWorklogForm model =
-    case List.head model.jobQueue of
-        Just ( Active, job ) ->
+    case ( model.nextJobStatus, List.head model.jobQueue ) of
+        ( Active, Just job ) ->
             let
                 submitButtonText =
                     hotkeyHintOrReal model.hintsStatus "Enter" "Save"
@@ -470,47 +450,45 @@ viewHotkeyHintsToggle model =
 
 viewContextSwitchingControls : Model -> Html Msg
 viewContextSwitchingControls model =
-    div [] <|
-        case List.head model.jobQueue of
-            Just ( jobStatus, job ) ->
-                case jobStatus of
-                    Active ->
-                        [ button
-                            [ class "waves-effect waves-light btn"
-                            , onClick (ActiveJob Yield)
-                            ]
-                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Yield") ]
-                        , button
-                            [ class "waves-effect waves-light btn"
-                            , onClick (ActiveJob Finish)
-                            ]
-                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finish") ]
+    if not (List.isEmpty model.jobQueue) then
+        div [] <|
+            case model.nextJobStatus of
+                Active ->
+                    [ button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (ActiveJob Yield)
                         ]
-
-                    Queued ->
-                        [ button
-                            [ class "waves-effect waves-light btn"
-                            , onClick (NextJob Execute)
-                            ]
-                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+G" "Go!") ]
-                        , button
-                            ([ classList
-                                [ ( "waves-effect waves-light btn", True )
-                                , ( "disabled", List.length model.jobQueue < 2 )
-                                ]
-                             , onClick (NextJob Skip)
-                             ]
-                            )
-                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+S" "Skip") ]
-                        , button
-                            [ class "waves-effect waves-light btn"
-                            , onClick (NextJob Drop)
-                            ]
-                            [ text (hotkeyHintOrReal model.hintsStatus "Alt+R" "Drop") ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Yield") ]
+                    , button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (ActiveJob Finish)
                         ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finish") ]
+                    ]
 
-            Nothing ->
-                []
+                Queued ->
+                    [ button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (NextJob Execute)
+                        ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+G" "Go!") ]
+                    , button
+                        ([ classList
+                            [ ( "waves-effect waves-light btn", True )
+                            , ( "disabled", List.length model.jobQueue < 2 )
+                            ]
+                         , onClick (NextJob Skip)
+                         ]
+                        )
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+S" "Skip") ]
+                    , button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (NextJob Drop)
+                        ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+R" "Drop") ]
+                    ]
+    else
+        text ""
 
 
 subscriptions : Model -> Sub Msg

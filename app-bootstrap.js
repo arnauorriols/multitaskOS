@@ -137,6 +137,15 @@ document.addEventListener('DOMContentLoaded', function() {
 			  if (model.hasOwnProperty('hotkeysPressed')) {
 						delete model.hotkeysPressed;
 				}
+
+				// v1.8.3
+				if (model.jobQueue.length && (model.jobQueue[0] instanceof Array)) {
+					  model.jobQueue = model.jobQueue.map((job) => job[1]);
+				}
+
+				if (!model.hasOwnProperty('nextJobStatus')) {
+					model.nextJobStatus = 'Queued';
+				}
         return model;
     }
 		var STORAGE_KEY = 'MultitaskOS-Model';
