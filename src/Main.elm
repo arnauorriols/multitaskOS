@@ -8,8 +8,18 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Update.Extra
 import List.Extra
+import Task
+import Plot
+import Date
+import Date.Extra.Format
+import Date.Extra.TimeUnit
+import Date.Extra.Duration
+import Date.Extra.Compare
+import Date.Extra.Config.Config_en_us
+import Time
 import Hotkey
 import Job
+import Metrics
 
 
 -- MODEL
@@ -17,16 +27,34 @@ import Job
 
 {-| -}
 type alias Model =
-    { jobQueue : List Job.Model
+    { jobQueue : JobQueue
     , nextJobStatus : JobStatus
     , hotkeysPressed : Hotkey.Model
     , hintsStatus : HotkeyHintStatus
+    , viewType : ViewType
+    , graphState : GraphState
+    , msgBeingTracked : Msg
     }
+
+
+type ViewType
+    = WorklogView
+    | GraphView
 
 
 type JobStatus
     = Active
     | Queued
+
+
+type alias JobQueueEntry =
+    { data : Job.Model
+    , history : Metrics.State Msg
+    }
+
+
+type alias JobQueue =
+    List JobQueueEntry
 
 
 type HotkeyHintStatus
@@ -50,6 +78,9 @@ init =
     , hotkeysPressed = Hotkey.init
     , nextJobStatus = Queued
     , hintsStatus = Hidden
+    , viewType = WorklogView
+    , graphState = graphStateInit
+    , msgBeingTracked = NoOp
     }
 
 
@@ -65,9 +96,15 @@ encode model =
                     Queued ->
                         "Queued"
                 )
+
+        encodeJob job =
+            Json.Encode.object
+                [ ( "data", Job.encode job.data )
+                , ( "history", Metrics.encode metricsConfig job.history )
+                ]
     in
         Json.Encode.object
-            [ ( "jobQueue", Json.Encode.list (List.map Job.encode model.jobQueue) )
+            [ ( "jobQueue", Json.Encode.list (List.map encodeJob model.jobQueue) )
             , ( "nextJobStatus", encodeStatus model.nextJobStatus )
             ]
 
@@ -88,13 +125,24 @@ decoder =
 
         jobStatusDecoder =
             (Json.Decode.map jobStatusDeserializer Json.Decode.string)
+
+        jobQueueDecoder =
+            Json.Decode.list
+                (Json.Decode.map2
+                    JobQueueEntry
+                    (Json.Decode.field "data" Job.decoder)
+                    (Json.Decode.field "history" (Metrics.decoder metricsConfig))
+                )
     in
-        Json.Decode.map4
+        Json.Decode.map7
             Model
-            (Json.Decode.field "jobQueue" (Json.Decode.list Job.decoder))
+            (Json.Decode.field "jobQueue" jobQueueDecoder)
             (Json.Decode.field "nextJobStatus" jobStatusDecoder)
             (Json.Decode.succeed Hotkey.init)
             (Json.Decode.succeed Hidden)
+            (Json.Decode.succeed WorklogView)
+            (Json.Decode.succeed (graphStateInit))
+            (Json.Decode.succeed NoOp)
 
 
 decodeValue : Json.Encode.Value -> Model
@@ -118,12 +166,15 @@ type Msg
     | NextJob NextJobMsg
     | ActiveJob ActiveJobMsg
     | Hotkey HotkeyMsg
+    | ToggleViewType
+    | SetGraphState GraphState
 
 
 type NextJobMsg
     = Execute
     | Skip
     | Drop
+    | MetricsMsg (Metrics.State Msg)
     | NextJobMsg Job.Msg
 
 
@@ -157,7 +208,7 @@ update action model =
                 Queued ->
                     let
                         newJob =
-                            Job.init
+                            { data = Job.init, history = Metrics.init }
                     in
                         ( { model | jobQueue = newJob :: model.jobQueue }, Cmd.none )
                             |> Update.Extra.andThen update (NextJob (NextJobMsg Job.triggerTitleEditMode))
@@ -186,14 +237,41 @@ update action model =
             case List.Extra.uncons model.jobQueue of
                 Just ( job, restQueue ) ->
                     let
-                        ( job2, cmd ) =
-                            Job.update jobMsg job
+                        ( job2Data, cmd ) =
+                            Job.update jobMsg job.data
                     in
-                        ( { model | jobQueue = job2 :: restQueue }
+                        ( { model | jobQueue = { job | data = job2Data } :: restQueue }
                         , Cmd.map (NextJobMsg >> NextJob) cmd
                         )
 
                 Nothing ->
+                    ( model, Cmd.none )
+
+        NextJob (MetricsMsg newHistory) ->
+            case model.msgBeingTracked of
+                NextJob Execute ->
+                    case List.Extra.uncons model.jobQueue of
+                        Just ( job, restQueue ) ->
+                            ( { model | jobQueue = { job | history = newHistory } :: restQueue }, Cmd.none )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                ActiveJob Yield ->
+                    case
+                        (List.Extra.updateAt
+                            ((List.length model.jobQueue) - 1)
+                            (\job -> { job | history = newHistory })
+                            model.jobQueue
+                        )
+                    of
+                        Just newJobQueue ->
+                            ( { model | jobQueue = newJobQueue }, Cmd.none )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                _ ->
                     ( model, Cmd.none )
 
         ActiveJob Yield ->
@@ -218,10 +296,10 @@ update action model =
             case ( model.nextJobStatus, List.Extra.uncons model.jobQueue ) of
                 ( Active, Just ( job, restQueue ) ) ->
                     let
-                        ( job2, cmd ) =
-                            Job.update jobMsg job
+                        ( job2Data, cmd ) =
+                            Job.update jobMsg job.data
                     in
-                        ( { model | jobQueue = job2 :: restQueue }
+                        ( { model | jobQueue = { job | data = job2Data } :: restQueue }
                         , Cmd.map (ActiveJobMsg >> ActiveJob) cmd
                         )
 
@@ -282,6 +360,17 @@ update action model =
                     Nothing ->
                         ( modelUpdated, Cmd.none )
 
+        ToggleViewType ->
+            case model.viewType of
+                WorklogView ->
+                    ( { model | viewType = GraphView }, graphLoad graphConfig )
+
+                GraphView ->
+                    ( { model | viewType = WorklogView }, Cmd.none )
+
+        SetGraphState graphState ->
+            ( { model | graphState = graphState }, Cmd.none )
+
 
 
 -- VIEW
@@ -291,12 +380,22 @@ view : Model -> Html Msg
 view model =
     viewPort
         [ mainSection
-            [ viewNextScheduledJobTitle model
-            , viewContextSwitchingControls model
-            , viewNextScheduledJobWorklog model
-            , viewActiveJobWorklogForm model
-            , viewHotkeyHintsToggle model
-            ]
+            (case model.viewType of
+                WorklogView ->
+                    [ viewNextScheduledJobTitle model
+                    , viewContextSwitchingControls model
+                    , viewNextScheduledJobWorklog model
+                    , viewActiveJobWorklogForm model
+                    , viewHotkeyHintsToggle model
+                    ]
+
+                GraphView ->
+                    [ viewNextScheduledJobTitle model
+                    , viewGraphControls model
+                    , viewNextScheduledJobGraph model
+                    , viewHotkeyHintsToggle model
+                    ]
+            )
         ]
 
 
@@ -343,7 +442,7 @@ viewNextScheduledJobTitle model =
                     ]
 
         viewJobTile job =
-            Job.viewTitle job |> Html.map (NextJobMsg >> NextJob)
+            Job.viewTitle job.data |> Html.map (NextJobMsg >> NextJob)
 
         newJobButton =
             span
@@ -401,7 +500,7 @@ viewNextScheduledJobWorklog : Model -> Html Msg
 viewNextScheduledJobWorklog model =
     case List.head model.jobQueue of
         Just job ->
-            Job.viewWorklog (model.nextJobStatus == Active) job |> Html.map (NextJobMsg >> NextJob)
+            Job.viewWorklog (model.nextJobStatus == Active) job.data |> Html.map (NextJobMsg >> NextJob)
 
         Nothing ->
             Html.text ""
@@ -415,10 +514,139 @@ viewActiveJobWorklogForm model =
                 submitButtonText =
                     hotkeyHintOrReal model.hintsStatus "Enter" "Save"
             in
-                Job.viewWorklogForm submitButtonText job |> Html.map (ActiveJobMsg >> ActiveJob)
+                Job.viewWorklogForm submitButtonText job.data |> Html.map (ActiveJobMsg >> ActiveJob)
 
         _ ->
             Html.text ""
+
+
+viewGraphControls : Model -> Html Msg
+viewGraphControls model =
+    div [ class "valign-wrapper" ]
+        [ span [ class "center-align col s11" ] [ text "Minutes worked the last 7 days" ]
+        , viewViewTypeToggle model
+        ]
+
+
+type GraphState
+    = GraphLoaded Date.Date
+    | GraphLoading
+
+
+type GraphConfig msg
+    = GraphConfig { toMsg : GraphState -> msg }
+
+
+graphConfig : GraphConfig Msg
+graphConfig =
+    GraphConfig { toMsg = SetGraphState }
+
+
+graphLoad : GraphConfig msg -> Cmd msg
+graphLoad (GraphConfig { toMsg }) =
+    Task.perform (GraphLoaded >> toMsg) Date.now
+
+
+graphStateInit : GraphState
+graphStateInit =
+    -- GraphLoaded (Date.Extra.Core.fromTime 1502951456000)
+    GraphLoading
+
+
+viewNextScheduledJobGraph : Model -> Html Msg
+viewNextScheduledJobGraph model =
+    case ( model.graphState, List.head model.jobQueue ) of
+        ( GraphLoaded now, Just job ) ->
+            viewJobGraph now job
+
+        ( GraphLoading, Just job ) ->
+            Html.text "loading"
+
+        ( _, Nothing ) ->
+            Html.text ""
+
+
+viewJobGraph : Date.Date -> JobQueueEntry -> Html Msg
+viewJobGraph now job =
+    let
+        nowTimestamp : Time.Time
+        nowTimestamp =
+            Date.toTime now
+
+        timeframeLength : Int
+        timeframeLength =
+            6
+
+        fromDate : Date.Date
+        fromDate =
+            Date.Extra.Duration.add Date.Extra.Duration.Day -timeframeLength now
+
+        nextDay date =
+            Date.Extra.Duration.add Date.Extra.Duration.Day 1 date
+
+        dates : Date.Date -> Date.Date -> List Date.Date
+        dates from to =
+            List.Extra.unfoldr
+                (\date ->
+                    if Date.Extra.Compare.is Date.Extra.Compare.After date to then
+                        Nothing
+                    else
+                        Just ( date, nextDay date )
+                )
+                from
+
+        dateTimeframe : Date.Date -> ( Date.Date, Date.Date )
+        dateTimeframe date =
+            ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Day date
+            , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Day date
+            )
+
+        msgsDuringTimeframe : ( Date.Date, Date.Date ) -> List ( Msg, Time.Time )
+        msgsDuringTimeframe ( from, to ) =
+            List.filter (\( _, timestamp ) -> Date.Extra.Compare.is3 Date.Extra.Compare.BetweenOpen (Date.fromTime timestamp) to from) (Metrics.getEvents job.history)
+
+        activeTime : List ( Msg, Time.Time ) -> Time.Time
+        activeTime msgs =
+            let
+                reducer : ( Msg, Time.Time ) -> Time.Time -> Time.Time
+                reducer ( msg, timestamp ) accumulated =
+                    case msg of
+                        NextJob Execute ->
+                            if accumulated == 0 then
+                                nowTimestamp - timestamp
+                            else
+                                accumulated - timestamp
+
+                        ActiveJob Yield ->
+                            accumulated + timestamp
+
+                        _ ->
+                            Debug.crash ("There's an intruder msg in the metrics!")
+            in
+                List.foldl reducer 0 msgs
+
+        dateFormatConfig =
+            Date.Extra.Config.Config_en_us.config
+
+        data =
+            List.map
+                (\date ->
+                    ( Date.Extra.Format.format dateFormatConfig dateFormatConfig.format.date date
+                    , Time.inMinutes (activeTime (msgsDuringTimeframe (dateTimeframe date)))
+                    )
+                )
+                (dates fromDate now)
+    in
+        div
+            [ class "flex-container flex-contained" ]
+            [ Plot.viewBars
+                (Plot.histogram
+                    (List.map
+                        (\( label, ammount ) -> Plot.group label [ ammount ])
+                    )
+                )
+                data
+            ]
 
 
 viewHotkeyHintsToggle : Model -> Html Msg
@@ -452,7 +680,7 @@ viewContextSwitchingControls : Model -> Html Msg
 viewContextSwitchingControls model =
     if not (List.isEmpty model.jobQueue) then
         div [] <|
-            case model.nextJobStatus of
+            (case model.nextJobStatus of
                 Active ->
                     [ button
                         [ class "waves-effect waves-light btn"
@@ -487,8 +715,31 @@ viewContextSwitchingControls model =
                         ]
                         [ text (hotkeyHintOrReal model.hintsStatus "Alt+R" "Drop") ]
                     ]
+            )
+                ++ [ viewViewTypeToggle model ]
     else
         text ""
+
+
+viewViewTypeToggle : Model -> Html Msg
+viewViewTypeToggle model =
+    let
+        icon =
+            case model.viewType of
+                WorklogView ->
+                    "assessment"
+
+                GraphView ->
+                    "assignment"
+    in
+        button
+            [ class "waves-effect waves-light btn right icon-btn without-margin-btn"
+            , onClick ToggleViewType
+            ]
+            [ i
+                [ class "material-icons" ]
+                [ Html.text icon ]
+            ]
 
 
 subscriptions : Model -> Sub Msg
@@ -501,6 +752,67 @@ subscriptions model =
 
 
 -- WIRING
+
+
+metricsConfig : Metrics.Config Msg Model
+metricsConfig =
+    Metrics.config
+        { trackedMsgs = [ NextJob Execute, ActiveJob Yield ]
+        , modelGetter =
+            (\model ->
+                case model.msgBeingTracked of
+                    NextJob Execute ->
+                        case List.head model.jobQueue of
+                            Just job ->
+                                job.history
+
+                            Nothing ->
+                                Metrics.init
+
+                    ActiveJob Yield ->
+                        case
+                            (List.Extra.getAt
+                                ((List.length model.jobQueue) - 1)
+                                model.jobQueue
+                            )
+                        of
+                            Just job ->
+                                job.history
+
+                            Nothing ->
+                                Metrics.init
+
+                    _ ->
+                        Metrics.init
+            )
+        , msgEncoder =
+            (\msg ->
+                case msg of
+                    NextJob Execute ->
+                        Json.Encode.string "NextJob Execute"
+
+                    ActiveJob Yield ->
+                        Json.Encode.string "ActiveJob Yield"
+
+                    _ ->
+                        Json.Encode.null
+            )
+        , msgDecoder =
+            Json.Decode.string
+                |> Json.Decode.andThen
+                    (\msg ->
+                        case msg of
+                            "NextJob Execute" ->
+                                Json.Decode.succeed (NextJob Execute)
+
+                            "ActiveJob Yield" ->
+                                Json.Decode.succeed (ActiveJob Yield)
+
+                            _ ->
+                                Json.Decode.fail ("The msg " ++ msg ++ " is not being tracked!")
+                    )
+        , toMsg = MetricsMsg >> NextJob
+        }
 
 
 {-| Simple Signal Wiring using an Msgs tagged union
@@ -518,12 +830,26 @@ main =
                         ( init, Cmd.none )
         , view = view
         , update =
-            \action model ->
+            \msg model ->
                 let
-                    ( newModel, cmd ) =
-                        update action model
+                    ( model2, cmd1 ) =
+                        update msg model
+
+                    model3 =
+                        case msg of
+                            NextJob Execute ->
+                                { model2 | msgBeingTracked = msg }
+
+                            ActiveJob Yield ->
+                                { model2 | msgBeingTracked = msg }
+
+                            _ ->
+                                model2
+
+                    cmd2 =
+                        Metrics.track metricsConfig msg model3
                 in
-                    ( newModel, Cmd.batch [ persistModel (encode newModel), cmd ] )
+                    ( model3, Cmd.batch [ persistModel (encode model3), cmd1, cmd2 ] )
         , subscriptions = subscriptions
         }
 

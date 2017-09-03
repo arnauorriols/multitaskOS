@@ -24,9 +24,12 @@ document.addEventListener('DOMContentLoaded', function() {
 									if (!model.hasOwnProperty('jobQueue')) {
 										model.jobQueue = [];
 									}
-									model.jobQueue.forEach(function (jobTuple) {
-										if (!jobTuple[1].hasOwnProperty('worklog')) {
-											jobTuple[1].worklog = [];
+									model.jobQueue.forEach(function (jobQueueEntry) {
+										if (!jobQueueEntry.data.hasOwnProperty('worklog')) {
+											jobQueueEntry.data.worklog = [];
+										}
+										if (!jobQueueEntry.history.hasOwnProperty('events')) {
+											jobQueueEntry.history.events = [];
 										}
 									});
 									multitaskos.ports.syncModelFromDatabase.send(model);
@@ -146,6 +149,18 @@ document.addEventListener('DOMContentLoaded', function() {
 				if (!model.hasOwnProperty('nextJobStatus')) {
 					model.nextJobStatus = 'Queued';
 				}
+
+				model.jobQueue.forEach(function (jobQueueEntry) {
+					if (!jobQueueEntry.hasOwnProperty('history')) {
+						jobQueueEntry.data = jobQueueEntry;
+						jobQueueEntry.history = {
+							events: [],
+							metricsMsg: {
+								msg: 'NoOp'
+							}
+						};
+					}
+				});
         return model;
     }
 		var STORAGE_KEY = 'MultitaskOS-Model';

@@ -25,3 +25,4 @@
 23. I can delete a worklog entry
 24. I can start an authenticated session in any machine and continue later in any another machine
 25. I can edit the title of an existing job
+26. I can see how much time I have been working on a job every day in a graph
