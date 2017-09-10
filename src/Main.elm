@@ -8,18 +8,10 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Update.Extra
 import List.Extra
-import Task
-import Plot
-import Date
-import Date.Extra.Format
-import Date.Extra.TimeUnit
-import Date.Extra.Duration
-import Date.Extra.Compare
-import Date.Extra.Config.Config_en_us
-import Time
 import Hotkey
 import Job
 import Metrics
+import Graph
 
 
 -- MODEL
@@ -32,7 +24,7 @@ type alias Model =
     , hotkeysPressed : Hotkey.Model
     , hintsStatus : HotkeyHintStatus
     , viewType : ViewType
-    , graphState : GraphState
+    , graphState : Graph.State
     , msgBeingTracked : Msg
     }
 
@@ -79,7 +71,7 @@ init =
     , nextJobStatus = Queued
     , hintsStatus = Hidden
     , viewType = WorklogView
-    , graphState = graphStateInit
+    , graphState = Graph.init
     , msgBeingTracked = NoOp
     }
 
@@ -141,7 +133,7 @@ decoder =
             (Json.Decode.succeed Hotkey.init)
             (Json.Decode.succeed Hidden)
             (Json.Decode.succeed WorklogView)
-            (Json.Decode.succeed (graphStateInit))
+            (Json.Decode.succeed Graph.init)
             (Json.Decode.succeed NoOp)
 
 
@@ -167,7 +159,7 @@ type Msg
     | ActiveJob ActiveJobMsg
     | Hotkey HotkeyMsg
     | ToggleViewType
-    | SetGraphState GraphState
+    | SetGraphState Graph.State
 
 
 type NextJobMsg
@@ -363,7 +355,7 @@ update action model =
         ToggleViewType ->
             case model.viewType of
                 WorklogView ->
-                    ( { model | viewType = GraphView }, graphLoad graphConfig )
+                    ( { model | viewType = GraphView }, Graph.load graphConfig )
 
                 GraphView ->
                     ( { model | viewType = WorklogView }, Cmd.none )
@@ -528,125 +520,38 @@ viewGraphControls model =
         ]
 
 
-type GraphState
-    = GraphLoaded Date.Date
-    | GraphLoading
-
-
-type GraphConfig msg
-    = GraphConfig { toMsg : GraphState -> msg }
-
-
-graphConfig : GraphConfig Msg
+graphConfig : Graph.Config Msg
 graphConfig =
-    GraphConfig { toMsg = SetGraphState }
+    Graph.config
+        { toMsg = SetGraphState
+        , from = Graph.offset Graph.Days -6
+        , groupBy = Graph.groupBy Graph.Days 1
+        , resolution = Graph.resolution Graph.Minutes
+        , reducer =
+            \now ( msg, timestamp ) accumulated ->
+                case msg of
+                    NextJob Execute ->
+                        if accumulated == 0 then
+                            now - timestamp
+                        else
+                            accumulated - timestamp
 
+                    ActiveJob Yield ->
+                        accumulated + timestamp
 
-graphLoad : GraphConfig msg -> Cmd msg
-graphLoad (GraphConfig { toMsg }) =
-    Task.perform (GraphLoaded >> toMsg) Date.now
-
-
-graphStateInit : GraphState
-graphStateInit =
-    -- GraphLoaded (Date.Extra.Core.fromTime 1502951456000)
-    GraphLoading
+                    _ ->
+                        Debug.crash ("There's an intruder msg in the metrics!")
+        }
 
 
 viewNextScheduledJobGraph : Model -> Html Msg
 viewNextScheduledJobGraph model =
-    case ( model.graphState, List.head model.jobQueue ) of
-        ( GraphLoaded now, Just job ) ->
-            viewJobGraph now job
+    case List.head model.jobQueue of
+        Just job ->
+            Graph.view graphConfig model.graphState (Metrics.getEvents job.history)
 
-        ( GraphLoading, Just job ) ->
-            Html.text "loading"
-
-        ( _, Nothing ) ->
+        Nothing ->
             Html.text ""
-
-
-viewJobGraph : Date.Date -> JobQueueEntry -> Html Msg
-viewJobGraph now job =
-    let
-        nowTimestamp : Time.Time
-        nowTimestamp =
-            Date.toTime now
-
-        timeframeLength : Int
-        timeframeLength =
-            6
-
-        fromDate : Date.Date
-        fromDate =
-            Date.Extra.Duration.add Date.Extra.Duration.Day -timeframeLength now
-
-        nextDay date =
-            Date.Extra.Duration.add Date.Extra.Duration.Day 1 date
-
-        dates : Date.Date -> Date.Date -> List Date.Date
-        dates from to =
-            List.Extra.unfoldr
-                (\date ->
-                    if Date.Extra.Compare.is Date.Extra.Compare.After date to then
-                        Nothing
-                    else
-                        Just ( date, nextDay date )
-                )
-                from
-
-        dateTimeframe : Date.Date -> ( Date.Date, Date.Date )
-        dateTimeframe date =
-            ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Day date
-            , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Day date
-            )
-
-        msgsDuringTimeframe : ( Date.Date, Date.Date ) -> List ( Msg, Time.Time )
-        msgsDuringTimeframe ( from, to ) =
-            List.filter (\( _, timestamp ) -> Date.Extra.Compare.is3 Date.Extra.Compare.BetweenOpen (Date.fromTime timestamp) to from) (Metrics.getEvents job.history)
-
-        activeTime : List ( Msg, Time.Time ) -> Time.Time
-        activeTime msgs =
-            let
-                reducer : ( Msg, Time.Time ) -> Time.Time -> Time.Time
-                reducer ( msg, timestamp ) accumulated =
-                    case msg of
-                        NextJob Execute ->
-                            if accumulated == 0 then
-                                nowTimestamp - timestamp
-                            else
-                                accumulated - timestamp
-
-                        ActiveJob Yield ->
-                            accumulated + timestamp
-
-                        _ ->
-                            Debug.crash ("There's an intruder msg in the metrics!")
-            in
-                List.foldl reducer 0 msgs
-
-        dateFormatConfig =
-            Date.Extra.Config.Config_en_us.config
-
-        data =
-            List.map
-                (\date ->
-                    ( Date.Extra.Format.format dateFormatConfig dateFormatConfig.format.date date
-                    , Time.inMinutes (activeTime (msgsDuringTimeframe (dateTimeframe date)))
-                    )
-                )
-                (dates fromDate now)
-    in
-        div
-            [ class "flex-container flex-contained" ]
-            [ Plot.viewBars
-                (Plot.histogram
-                    (List.map
-                        (\( label, ammount ) -> Plot.group label [ ammount ])
-                    )
-                )
-                data
-            ]
 
 
 viewHotkeyHintsToggle : Model -> Html Msg
