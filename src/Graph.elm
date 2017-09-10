@@ -232,7 +232,7 @@ viewGraph (Config config) now data =
                 (groupDates config.groupBy from now)
     in
         div
-            [ class "flex-container flex-contained" ]
+            [ class "flex-container flex-contained flex-contained-force-grow" ]
             [ Plot.viewBars
                 (Plot.histogram
                     (List.map
