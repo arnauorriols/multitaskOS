@@ -25,6 +25,7 @@ type alias Model =
     , hintsStatus : HotkeyHintStatus
     , viewType : ViewType
     , graphState : Graph.State
+    , graphConfig : GraphConfigState
     , msgBeingTracked : Msg
     }
 
@@ -47,6 +48,45 @@ type alias JobQueueEntry =
 
 type alias JobQueue =
     List JobQueueEntry
+
+
+type alias GraphConfigState =
+    { resolutionUnit : Graph.DateUnit
+    , offsetAmmount : Int
+    , offsetUnit : Graph.DateUnit
+    }
+
+
+graphConfigStateInit : GraphConfigState
+graphConfigStateInit =
+    { resolutionUnit = Graph.Minutes
+    , offsetAmmount = 7
+    , offsetUnit = Graph.Days
+    }
+
+
+graphConfig : GraphConfigState -> Graph.Config Msg
+graphConfig configState =
+    Graph.config
+        { toMsg = SetGraphState
+        , from = Graph.offset configState.offsetUnit -configState.offsetAmmount
+        , groupBy = Graph.groupBy Graph.Days 1
+        , resolution = Graph.resolution configState.resolutionUnit
+        , reducer =
+            \now ( msg, timestamp ) accumulated ->
+                case msg of
+                    NextJob Execute ->
+                        if accumulated == 0 then
+                            now - timestamp
+                        else
+                            accumulated - timestamp
+
+                    ActiveJob Yield ->
+                        accumulated + timestamp
+
+                    _ ->
+                        Debug.crash ("There's an intruder msg in the metrics!")
+        }
 
 
 type HotkeyHintStatus
@@ -72,6 +112,7 @@ init =
     , hintsStatus = Hidden
     , viewType = WorklogView
     , graphState = Graph.init
+    , graphConfig = graphConfigStateInit
     , msgBeingTracked = NoOp
     }
 
@@ -126,7 +167,7 @@ decoder =
                     (Json.Decode.field "history" (Metrics.decoder metricsConfig))
                 )
     in
-        Json.Decode.map7
+        Json.Decode.map8
             Model
             (Json.Decode.field "jobQueue" jobQueueDecoder)
             (Json.Decode.field "nextJobStatus" jobStatusDecoder)
@@ -134,6 +175,7 @@ decoder =
             (Json.Decode.succeed Hidden)
             (Json.Decode.succeed WorklogView)
             (Json.Decode.succeed Graph.init)
+            (Json.Decode.succeed graphConfigStateInit)
             (Json.Decode.succeed NoOp)
 
 
@@ -160,6 +202,7 @@ type Msg
     | Hotkey HotkeyMsg
     | ToggleViewType
     | SetGraphState Graph.State
+    | GraphControls GraphControlsMsg
 
 
 type NextJobMsg
@@ -181,6 +224,12 @@ type HotkeyMsg
     | HideHints
     | HotkeyMsg Hotkey.Msg
     | Triggered Hotkey.Hotkey
+
+
+type GraphControlsMsg
+    = ChangeResolution String
+    | ChangeOffsetAmmount String
+    | ChangeOffsetUnit String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -355,13 +404,47 @@ update action model =
         ToggleViewType ->
             case model.viewType of
                 WorklogView ->
-                    ( { model | viewType = GraphView }, Graph.load graphConfig )
+                    ( { model | viewType = GraphView }, Graph.load (graphConfig model.graphConfig) )
 
                 GraphView ->
                     ( { model | viewType = WorklogView }, Cmd.none )
 
         SetGraphState graphState ->
             ( { model | graphState = graphState }, Cmd.none )
+
+        GraphControls (ChangeResolution resolution) ->
+            let
+                graphConfig =
+                    model.graphConfig
+            in
+                case Graph.dateUnitFromString resolution of
+                    Ok unit ->
+                        ( { model | graphConfig = { graphConfig | resolutionUnit = unit } }, Cmd.none )
+
+                    Err reason ->
+                        Debug.crash reason
+
+        GraphControls (ChangeOffsetUnit offsetUnit) ->
+            let
+                graphConfig =
+                    model.graphConfig
+            in
+                case Graph.dateUnitFromString offsetUnit of
+                    Ok unit ->
+                        ( { model | graphConfig = { graphConfig | offsetUnit = unit } }, Cmd.none )
+
+                    Err reason ->
+                        Debug.crash reason
+
+        GraphControls (ChangeOffsetAmmount ammount) ->
+            let
+                graphConfig =
+                    model.graphConfig
+
+                offsetAmmount =
+                    Result.withDefault ((graphConfigStateInit).offsetAmmount) (String.toInt ammount)
+            in
+                ( { model | graphConfig = { graphConfig | offsetAmmount = offsetAmmount } }, Cmd.none )
 
 
 
@@ -514,41 +597,87 @@ viewActiveJobWorklogForm model =
 
 viewGraphControls : Model -> Html Msg
 viewGraphControls model =
-    div [ class "valign-wrapper" ]
-        [ span [ class "center-align col s11" ] [ text "Minutes worked the last 7 days" ]
+    div []
+        [ div
+            [ class "col s1 graph-control" ]
+            [ label
+                []
+                [ text "Since"
+                , input
+                    [ id "offset-ammount-input"
+                    , type_ "number"
+                    , Html.Attributes.min "0"
+                    , onInput (ChangeOffsetAmmount >> GraphControls)
+                    , value (toString model.graphConfig.offsetAmmount)
+                    ]
+                    []
+                ]
+            ]
+        , div
+            [ class "col s2 graph-control graph-control-bundled" ]
+            [ label
+                []
+                [ span [ style [ ( "visibility", "hidden" ) ] ] [ text "unit" ]
+                , select
+                    [ id "offset-unit-select"
+                    , class "browser-default"
+                    , onChange (ChangeOffsetUnit >> GraphControls)
+                    ]
+                    [ option
+                        [ value "Days"
+                        , selected (model.graphConfig.offsetUnit == Graph.Days)
+                        ]
+                        [ text "Days ago" ]
+                    , option
+                        [ value "Hours"
+                        , selected (model.graphConfig.offsetUnit == Graph.Hours)
+                        ]
+                        [ text "Hours ago" ]
+                    , option
+                        [ value "Minutes"
+                        , selected (model.graphConfig.offsetUnit == Graph.Minutes)
+                        ]
+                        [ text "Minutes ago" ]
+                    ]
+                ]
+            ]
+        , div
+            [ class "col s2 graph-control graph-control-next" ]
+            [ label
+                []
+                [ text "Resolution"
+                , select
+                    [ id "resolution-select"
+                    , class "browser-default"
+                    , onChange (ChangeResolution >> GraphControls)
+                    ]
+                    [ option
+                        [ value "Minutes"
+                        , selected (model.graphConfig.resolutionUnit == Graph.Minutes)
+                        ]
+                        [ text "Minutes" ]
+                    , option
+                        [ value "Hours"
+                        , selected (model.graphConfig.resolutionUnit == Graph.Hours)
+                        ]
+                        [ text "Hours" ]
+                    , option
+                        [ value "Days"
+                        , selected (model.graphConfig.resolutionUnit == Graph.Days)
+                        ]
+                        [ text "Days" ]
+                    ]
+                ]
+            ]
         , viewViewTypeToggle model
         ]
-
-
-graphConfig : Graph.Config Msg
-graphConfig =
-    Graph.config
-        { toMsg = SetGraphState
-        , from = Graph.offset Graph.Days -6
-        , groupBy = Graph.groupBy Graph.Days 1
-        , resolution = Graph.resolution Graph.Minutes
-        , reducer =
-            \now ( msg, timestamp ) accumulated ->
-                case msg of
-                    NextJob Execute ->
-                        if accumulated == 0 then
-                            now - timestamp
-                        else
-                            accumulated - timestamp
-
-                    ActiveJob Yield ->
-                        accumulated + timestamp
-
-                    _ ->
-                        Debug.crash ("There's an intruder msg in the metrics!")
-        }
 
 
 viewNextScheduledJobGraph : Model -> Html Msg
 viewNextScheduledJobGraph model =
     case List.head model.jobQueue of
         Just job ->
-            Graph.view graphConfig model.graphState (Metrics.getEvents job.history)
+            Graph.view (graphConfig model.graphConfig) model.graphState (Metrics.getEvents job.history)
 
         Nothing ->
             Html.text ""
@@ -757,6 +886,13 @@ main =
                     ( model3, Cmd.batch [ persistModel (encode model3), cmd1, cmd2 ] )
         , subscriptions = subscriptions
         }
+
+
+onChange : (String -> Msg) -> Attribute Msg
+onChange toMsg =
+    targetValue
+        |> Json.Decode.map toMsg
+        |> on "change"
 
 
 port persistModel : Json.Encode.Value -> Cmd msg

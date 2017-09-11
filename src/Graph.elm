@@ -10,6 +10,7 @@ module Graph
         , groupBy
         , resolution
         , DateUnit(..)
+        , dateUnitFromString
         )
 
 import Task
@@ -79,6 +80,25 @@ type DateUnit
     | Days
     | Hours
     | Minutes
+
+
+dateUnitFromString : String -> Result String DateUnit
+dateUnitFromString unit =
+    case unit of
+        "Minutes" ->
+            Ok Minutes
+
+        "Hours" ->
+            Ok Hours
+
+        "Days" ->
+            Ok Days
+
+        "Months" ->
+            Ok Months
+
+        _ ->
+            Err ("Unsupported date unit => " ++ unit)
 
 
 type Offset
