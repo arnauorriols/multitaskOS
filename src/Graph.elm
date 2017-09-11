@@ -36,7 +36,7 @@ type State
 type Config msg
     = Config
         { toMsg : State -> msg
-        , reducer : Time.Time -> ( msg, Time.Time ) -> Time.Time -> Time.Time
+        , reducer : ( Time.Time, Time.Time ) -> ( msg, Time.Time ) -> Time.Time -> Time.Time
         , from : Offset
         , groupBy : GroupBy
         , resolution : Resolution
@@ -45,7 +45,7 @@ type Config msg
 
 config :
     { toMsg : State -> msg
-    , reducer : Time.Time -> ( msg, Time.Time ) -> Time.Time -> Time.Time
+    , reducer : ( Time.Time, Time.Time ) -> ( msg, Time.Time ) -> Time.Time -> Time.Time
     , from : Offset
     , groupBy : GroupBy
     , resolution : Resolution
@@ -172,37 +172,44 @@ groupDates groupby from to =
         from
 
 
-groupData : GroupBy -> Date.Date -> List ( msg, Time.Time ) -> List ( msg, Time.Time )
-groupData groupby groupDate data =
+groupData : GroupBy -> Date.Date -> Date.Date -> List ( msg, Time.Time ) -> List ( msg, Time.Time )
+groupData groupby now groupDate data =
     let
         ( from, to ) =
-            groupTimeframe groupby groupDate
+            groupTimeframe groupby now groupDate
     in
         List.filter (\( _, timestamp ) -> Date.Extra.Compare.is3 Date.Extra.Compare.BetweenOpen (Date.fromTime timestamp) to from) data
 
 
-groupTimeframe : GroupBy -> Date.Date -> ( Date.Date, Date.Date )
-groupTimeframe groupby groupDate =
-    case groupby of
-        GroupBy Months ammount ->
-            ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Month groupDate
-            , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Month groupDate
-            )
+groupTimeframe : GroupBy -> Date.Date -> Date.Date -> ( Date.Date, Date.Date )
+groupTimeframe groupby now groupDate =
+    let
+        ensureNotGraterThanNow date =
+            if Date.Extra.Compare.is Date.Extra.Compare.After date now then
+                now
+            else
+                date
+    in
+        case groupby of
+            GroupBy Months ammount ->
+                ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Month groupDate
+                , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Month groupDate |> Date.Extra.Duration.add Date.Extra.Duration.Month (ammount - 1) |> ensureNotGraterThanNow
+                )
 
-        GroupBy Days ammount ->
-            ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Day groupDate
-            , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Day groupDate |> Date.Extra.Duration.add Date.Extra.Duration.Day (ammount - 1)
-            )
+            GroupBy Days ammount ->
+                ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Day groupDate
+                , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Day groupDate |> Date.Extra.Duration.add Date.Extra.Duration.Day (ammount - 1) |> ensureNotGraterThanNow
+                )
 
-        GroupBy Hours ammount ->
-            ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Hour groupDate
-            , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Hour groupDate
-            )
+            GroupBy Hours ammount ->
+                ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Hour groupDate
+                , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Hour groupDate |> Date.Extra.Duration.add Date.Extra.Duration.Hour (ammount - 1) |> ensureNotGraterThanNow
+                )
 
-        GroupBy Minutes ammount ->
-            ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Minute groupDate
-            , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Minute groupDate
-            )
+            GroupBy Minutes ammount ->
+                ( Date.Extra.TimeUnit.startOfTime Date.Extra.TimeUnit.Minute groupDate
+                , Date.Extra.TimeUnit.endOfTime Date.Extra.TimeUnit.Minute groupDate |> Date.Extra.Duration.add Date.Extra.Duration.Minute (ammount - 1) |> ensureNotGraterThanNow
+                )
 
 
 dateFormatConfig : Date.Extra.Config.Config
@@ -212,7 +219,7 @@ dateFormatConfig =
 
 formatDate : Date.Extra.Config.Config -> Date.Date -> String
 formatDate dateFormatConfig date =
-    Date.Extra.Format.format dateFormatConfig dateFormatConfig.format.date date
+    Date.Extra.Format.format dateFormatConfig "%-d/%-m %-H:%M" date
 
 
 inResolution : Resolution -> Time.Time -> Float
@@ -234,9 +241,9 @@ inResolution resolutionConfigured totalSeconds =
 viewGraph : Config msg -> Date.Date -> List ( msg, Time.Time ) -> Html msg
 viewGraph (Config config) now data =
     let
-        groupDataReduced : List ( msg, Time.Time ) -> Time.Time
-        groupDataReduced msgs =
-            List.foldl (config.reducer (Date.toTime now)) 0 msgs
+        groupDataReduced : Date.Date -> List ( msg, Time.Time ) -> Time.Time
+        groupDataReduced groupDate msgs =
+            List.foldl (config.reducer (groupTimeframe config.groupBy now groupDate |> Tuple.mapFirst Date.toTime |> Tuple.mapSecond Date.toTime)) 0 msgs
 
         from : Date.Date
         from =
@@ -246,7 +253,7 @@ viewGraph (Config config) now data =
             List.map
                 (\groupDate ->
                     ( formatDate dateFormatConfig groupDate
-                    , groupData config.groupBy groupDate data |> groupDataReduced |> inResolution config.resolution
+                    , groupData config.groupBy now groupDate data |> groupDataReduced groupDate |> inResolution config.resolution
                     )
                 )
                 (groupDates config.groupBy from now)

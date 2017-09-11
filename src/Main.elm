@@ -67,26 +67,34 @@ graphConfigStateInit =
 
 graphConfig : GraphConfigState -> Graph.Config Msg
 graphConfig configState =
-    Graph.config
-        { toMsg = SetGraphState
-        , from = Graph.offset configState.offsetUnit -configState.offsetAmmount
-        , groupBy = Graph.groupBy Graph.Days 1
-        , resolution = Graph.resolution configState.resolutionUnit
-        , reducer =
-            \now ( msg, timestamp ) accumulated ->
-                case msg of
-                    NextJob Execute ->
-                        if accumulated == 0 then
-                            now - timestamp
-                        else
-                            accumulated - timestamp
+    let
+        ensureMax10Columns : Int -> Int -> Int
+        ensureMax10Columns offsetAmmount groupAmmount =
+            if offsetAmmount // groupAmmount > 7 then
+                ensureMax10Columns offsetAmmount (groupAmmount + 1)
+            else
+                groupAmmount
+    in
+        Graph.config
+            { toMsg = SetGraphState
+            , from = Graph.offset configState.offsetUnit -configState.offsetAmmount
+            , groupBy = Graph.groupBy configState.offsetUnit (ensureMax10Columns configState.offsetAmmount 1)
+            , resolution = Graph.resolution configState.resolutionUnit
+            , reducer =
+                \( from, to ) ( msg, timestamp ) accumulated ->
+                    case msg of
+                        NextJob Execute ->
+                            if accumulated == 0 then
+                                to - timestamp
+                            else
+                                accumulated - (timestamp - from)
 
-                    ActiveJob Yield ->
-                        accumulated + timestamp
+                        ActiveJob Yield ->
+                            accumulated + (timestamp - from)
 
-                    _ ->
-                        Debug.crash ("There's an intruder msg in the metrics!")
-        }
+                        _ ->
+                            Debug.crash ("There's an intruder msg in the metrics!")
+            }
 
 
 type HotkeyHintStatus
@@ -624,6 +632,11 @@ viewGraphControls model =
                     , onChange (ChangeOffsetUnit >> GraphControls)
                     ]
                     [ option
+                        [ value "Months"
+                        , selected (model.graphConfig.offsetUnit == Graph.Months)
+                        ]
+                        [ text "Months ago" ]
+                    , option
                         [ value "Days"
                         , selected (model.graphConfig.offsetUnit == Graph.Days)
                         ]
@@ -666,6 +679,11 @@ viewGraphControls model =
                         , selected (model.graphConfig.resolutionUnit == Graph.Days)
                         ]
                         [ text "Days" ]
+                    , option
+                        [ value "Months"
+                        , selected (model.graphConfig.resolutionUnit == Graph.Months)
+                        ]
+                        [ text "Months" ]
                     ]
                 ]
             ]
