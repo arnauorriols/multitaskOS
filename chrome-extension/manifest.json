@@ -3,7 +3,7 @@
 
   "name": "MultitaskOS",
   "description": "Let the machine do what it does best and we do worst",
-  "version": "1.7.1",
+  "version": "1.9.0",
 
   "browser_action": {
     "default_popup": "index.html"
