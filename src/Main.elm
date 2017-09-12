@@ -546,7 +546,7 @@ viewNextScheduledJobTitle model =
                         , ( "left", "-0.22rem" )
                         ]
                     ]
-                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+H" "") ]
+                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+N" "") ]
                 ]
     in
         div [ class "row valign-wrapper" ]
