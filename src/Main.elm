@@ -622,7 +622,7 @@ viewGraphControls model =
                 ]
             ]
         , div
-            [ class "col s2 graph-control graph-control-bundled" ]
+            [ class "col graph-control graph-control-bundled" ]
             [ label
                 []
                 [ span [ style [ ( "visibility", "hidden" ) ] ] [ text "unit" ]
@@ -655,7 +655,7 @@ viewGraphControls model =
                 ]
             ]
         , div
-            [ class "col s2 graph-control graph-control-next" ]
+            [ class "col graph-control graph-control-next" ]
             [ label
                 []
                 [ text "Resolution"
