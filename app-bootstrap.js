@@ -108,4 +108,9 @@ document.addEventListener('DOMContentLoaded', function() {
 					database.ref('users-data/' + user.uid).set(model);
 				}
     });
+
+		// Hide URL bar
+		if(navigator.userAgent.match(/Android/i)){
+			window.scrollTo(0,1);
+		}
 });
