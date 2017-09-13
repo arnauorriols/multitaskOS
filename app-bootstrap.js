@@ -15,10 +15,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				if (user) {
 						document.getElementById('logout').classList.remove('hide');
 						document.getElementById('login').classList.add('hide');
-						database.ref('users-data/' + user.uid).once('value').then(function(data) {
+						database.ref('users-data/' + user.uid).on('value', function(data) {
 							var model = data.val();
 							if (model) {
-								localModel = localStorage.getItem(STORAGE_KEY);
+								localModel = JSON.parse(localStorage.getItem(STORAGE_KEY));
 								if (!localModel || !localModel.timestamp || (model.timestamp > localModel.timestamp)) {
 									console.log('Model in database is newer than local version. Syncing...');
 									// Firebase does not store empty arrays, we need to manually add them
