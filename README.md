@@ -2,6 +2,8 @@
 
 Small app to delegate to the machine what it do best, and we do worst, when multitasking: Context switching.
 
+From version 2.0.0, it's available publicly in the [Chrome Web Store](https://chrome.google.com/webstore/detail/multitaskos/ocdlpdmejajjjfcmhggnhbeacmgnabad)
+
 ## Build
 
 ```
