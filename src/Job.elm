@@ -10,7 +10,6 @@ module Job
         , focusWorklogForm
         , triggerTitleEditMode
         , viewTitle
-        , viewTitleForm
         , viewWorklog
         , viewWorklogForm
         )
@@ -257,24 +256,6 @@ triggerTitleEditMode =
 -- VIEW
 
 
-{-| Present the form for creating new jobs
--}
-viewTitleForm : String -> Model -> Html Msg
-viewTitleForm placeholder model =
-    div [ class "input-field" ]
-        [ input
-            [ id "input-title"
-            , class "validate"
-            , type_ "text"
-            , value model.title
-            , onInput EditTitle
-            ]
-            []
-        , label [ for "input-title" ]
-            [ text placeholder ]
-        ]
-
-
 {-| Present the title of a job
 -}
 viewTitle : Model -> Html Msg
@@ -387,8 +368,8 @@ viewWorklog editable model =
 -}
 viewWorklogForm : String -> Model -> Html Msg
 viewWorklogForm buttonText { worklog } =
-    div []
-        [ div [ class "input-field col s10" ]
+    div [ class "row" ]
+        [ div [ class "input-field col s8 m10" ]
             [ input
                 [ id "input-worklog"
                 , value (Tuple.first (unsavedWorklogEntry worklog))
@@ -400,7 +381,7 @@ viewWorklogForm buttonText { worklog } =
             , label [ for "input-worklog" ]
                 [ text "New journal entry" ]
             ]
-        , div [ class "input-field col s2" ]
+        , div [ class "input-field col s4 m2" ]
             [ button
                 [ class "right waves-effect waves-light btn"
                 , type_ "submit"
