@@ -1,6 +1,7 @@
 port module Main exposing (Model, main)
 
 import Debug
+import Task
 import Json.Decode
 import Json.Encode
 import Html exposing (..)
@@ -391,7 +392,7 @@ update action model =
                                 Hidden ->
                                     Hotkey ShowHints
             in
-                ( model, Cmd.none ) |> Update.Extra.andThen update nextMsg
+                ( model, Task.perform (\x -> nextMsg) (Task.succeed never) )
 
         Hotkey (HotkeyMsg action) ->
             let
