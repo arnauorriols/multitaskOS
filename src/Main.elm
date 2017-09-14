@@ -900,7 +900,16 @@ main =
                     cmd2 =
                         Metrics.track metricsConfig msg model3
                 in
-                    ( model3, Cmd.batch [ persistModel (encode model3), cmd1, cmd2 ] )
+                    ( model3
+                    , Cmd.batch
+                        [ if msg /= (SyncModel model) then
+                            persistModel (encode model3)
+                          else
+                            Cmd.none
+                        , cmd1
+                        , cmd2
+                        ]
+                    )
         , subscriptions = subscriptions
         }
 
