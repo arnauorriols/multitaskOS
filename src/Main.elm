@@ -1,4 +1,4 @@
-port module Main exposing (Model, main)
+port module Main exposing (main)
 
 import Debug
 import Task
@@ -19,7 +19,6 @@ import Graph
 -- MODEL
 
 
-{-| -}
 type alias Model =
     { jobQueue : JobQueue
     , nextJobStatus : JobStatus
@@ -802,10 +801,6 @@ subscriptions model =
         ]
 
 
-
--- WIRING
-
-
 metricsConfig : Metrics.Config Msg Model
 metricsConfig =
     Metrics.config
@@ -867,8 +862,6 @@ metricsConfig =
         }
 
 
-{-| Simple Signal Wiring using an Msgs tagged union
--}
 main : Program (Maybe Json.Encode.Value) Model Msg
 main =
     Html.programWithFlags
