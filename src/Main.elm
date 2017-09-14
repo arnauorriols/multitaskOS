@@ -20,7 +20,7 @@ import Graph
 
 
 type alias Model =
-    { jobQueue : List JobQueueEntry
+    { jobQueue : List (QueuePosition Job.Model)
     , nextJobStatus : JobStatus
     , hotkeysPressed : Hotkey.Model
     , hintsStatus : HotkeyHintStatus
@@ -41,8 +41,8 @@ type JobStatus
     | Queued
 
 
-type alias JobQueueEntry =
-    { data : Job.Model
+type alias QueuePosition dataModel =
+    { data : dataModel
     , history : Metrics.State Msg
     }
 
@@ -167,7 +167,7 @@ decoder =
         jobQueueDecoder =
             Json.Decode.list
                 (Json.Decode.map2
-                    JobQueueEntry
+                    QueuePosition
                     (Json.Decode.field "data" Job.decoder)
                     (Json.Decode.field "history" (Metrics.decoder metricsConfig))
                 )
