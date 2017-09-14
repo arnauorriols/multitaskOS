@@ -900,13 +900,28 @@ main =
 
                     cmd2 =
                         Metrics.track metricsConfig msg model3
+
+                    model2persist =
+                        let
+                            oldModelEncoded =
+                                encode model
+
+                            newModelEncoded =
+                                encode model3
+                        in
+                            if oldModelEncoded /= newModelEncoded then
+                                Just newModelEncoded
+                            else
+                                Nothing
                 in
                     ( model3
                     , Cmd.batch
-                        [ if msg /= (SyncModel model) then
-                            persistModel (encode model3)
-                          else
-                            Cmd.none
+                        [ case model2persist of
+                            Just model ->
+                                persistModel model
+
+                            Nothing ->
+                                Cmd.none
                         , cmd1
                         , cmd2
                         ]
