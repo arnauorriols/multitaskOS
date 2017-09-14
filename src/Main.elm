@@ -31,9 +31,23 @@ type alias Model =
     }
 
 
-type ViewType
-    = WorklogView
-    | GraphView
+init : Model
+init =
+    { jobQueue = []
+    , hotkeysPressed = Hotkey.init
+    , nextJobStatus = Queued
+    , hintsStatus = Hidden
+    , viewType = WorklogView
+    , graphState = Graph.init
+    , graphConfig = graphConfigStateInit
+    , msgBeingTracked = NoOp
+    }
+
+
+type alias QueuePosition dataModel =
+    { data : dataModel
+    , history : Metrics.State Msg
+    }
 
 
 type JobStatus
@@ -41,10 +55,24 @@ type JobStatus
     | Queued
 
 
-type alias QueuePosition dataModel =
-    { data : dataModel
-    , history : Metrics.State Msg
-    }
+type HotkeyHintStatus
+    = Shown
+    | Hidden
+
+
+hotkeyHintOrReal : HotkeyHintStatus -> String -> String -> String
+hotkeyHintOrReal hotkeyHintStatus hotkeyHint realText =
+    case hotkeyHintStatus of
+        Shown ->
+            hotkeyHint
+
+        Hidden ->
+            realText
+
+
+type ViewType
+    = WorklogView
+    | GraphView
 
 
 type alias GraphConfigState =
@@ -92,34 +120,6 @@ graphConfig configState =
                         _ ->
                             Debug.crash ("There's an intruder msg in the metrics!")
             }
-
-
-type HotkeyHintStatus
-    = Shown
-    | Hidden
-
-
-hotkeyHintOrReal : HotkeyHintStatus -> String -> String -> String
-hotkeyHintOrReal hotkeyHintStatus hotkeyHint realText =
-    case hotkeyHintStatus of
-        Shown ->
-            hotkeyHint
-
-        Hidden ->
-            realText
-
-
-init : Model
-init =
-    { jobQueue = []
-    , hotkeysPressed = Hotkey.init
-    , nextJobStatus = Queued
-    , hintsStatus = Hidden
-    , viewType = WorklogView
-    , graphState = Graph.init
-    , graphConfig = graphConfigStateInit
-    , msgBeingTracked = NoOp
-    }
 
 
 encode : Model -> Json.Encode.Value
@@ -547,6 +547,51 @@ viewNextScheduledJobTitle model =
             )
 
 
+viewContextSwitchingControls : Model -> Html Msg
+viewContextSwitchingControls model =
+    if not (List.isEmpty model.jobQueue) then
+        div [] <|
+            (case model.nextJobStatus of
+                Active ->
+                    [ button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (ActiveJob Yield)
+                        ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Yield") ]
+                    , button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (ActiveJob Finish)
+                        ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finish") ]
+                    ]
+
+                Queued ->
+                    [ button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (NextJob Execute)
+                        ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+G" "Go!") ]
+                    , button
+                        ([ classList
+                            [ ( "waves-effect waves-light btn", True )
+                            , ( "disabled", List.length model.jobQueue < 2 )
+                            ]
+                         , onClick (NextJob Skip)
+                         ]
+                        )
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+S" "Skip") ]
+                    , button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (NextJob Drop)
+                        ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+R" "Drop") ]
+                    ]
+            )
+                ++ [ viewViewTypeToggle model ]
+    else
+        text ""
+
+
 viewNextScheduledJobWorklog : Model -> Html Msg
 viewNextScheduledJobWorklog model =
     let
@@ -721,51 +766,6 @@ viewHotkeyHintsToggle model =
             ]
             [ text (hotkeyHintOrReal model.hintsStatus "Alt+H" "") ]
         ]
-
-
-viewContextSwitchingControls : Model -> Html Msg
-viewContextSwitchingControls model =
-    if not (List.isEmpty model.jobQueue) then
-        div [] <|
-            (case model.nextJobStatus of
-                Active ->
-                    [ button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (ActiveJob Yield)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Yield") ]
-                    , button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (ActiveJob Finish)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finish") ]
-                    ]
-
-                Queued ->
-                    [ button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (NextJob Execute)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+G" "Go!") ]
-                    , button
-                        ([ classList
-                            [ ( "waves-effect waves-light btn", True )
-                            , ( "disabled", List.length model.jobQueue < 2 )
-                            ]
-                         , onClick (NextJob Skip)
-                         ]
-                        )
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+S" "Skip") ]
-                    , button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (NextJob Drop)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+R" "Drop") ]
-                    ]
-            )
-                ++ [ viewViewTypeToggle model ]
-    else
-        text ""
 
 
 viewViewTypeToggle : Model -> Html Msg
