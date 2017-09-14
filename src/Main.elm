@@ -20,7 +20,7 @@ import Graph
 
 
 type alias Model =
-    { jobQueue : JobQueue
+    { jobQueue : List JobQueueEntry
     , nextJobStatus : JobStatus
     , hotkeysPressed : Hotkey.Model
     , hintsStatus : HotkeyHintStatus
@@ -45,10 +45,6 @@ type alias JobQueueEntry =
     { data : Job.Model
     , history : Metrics.State Msg
     }
-
-
-type alias JobQueue =
-    List JobQueueEntry
 
 
 type alias GraphConfigState =
