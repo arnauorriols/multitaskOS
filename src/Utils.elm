@@ -1,4 +1,4 @@
-module Utils exposing (onEnter)
+module Utils exposing (onEnter, onChange)
 
 import Html
 import Html.Events
@@ -15,3 +15,10 @@ onEnter noop action =
                 noop
     in
         Html.Events.on "keydown" <| Json.Decode.map tagger Html.Events.keyCode
+
+
+onChange : (String -> msg) -> Html.Attribute msg
+onChange toMsg =
+    Html.Events.targetValue
+        |> Json.Decode.map toMsg
+        |> Html.Events.on "change"

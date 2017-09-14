@@ -9,6 +9,7 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Update.Extra
 import List.Extra
+import Utils
 import Hotkey
 import Job
 import Metrics
@@ -628,7 +629,7 @@ viewGraphControls model =
                 , select
                     [ id "offset-unit-select"
                     , class "browser-default"
-                    , onChange (ChangeOffsetUnit >> GraphControls)
+                    , Utils.onChange (ChangeOffsetUnit >> GraphControls)
                     ]
                     [ option
                         [ value "Months"
@@ -661,7 +662,7 @@ viewGraphControls model =
                 , select
                     [ id "resolution-select"
                     , class "browser-default"
-                    , onChange (ChangeResolution >> GraphControls)
+                    , Utils.onChange (ChangeResolution >> GraphControls)
                     ]
                     [ option
                         [ value "Minutes"
@@ -912,13 +913,6 @@ main =
                     )
         , subscriptions = subscriptions
         }
-
-
-onChange : (String -> Msg) -> Attribute Msg
-onChange toMsg =
-    targetValue
-        |> Json.Decode.map toMsg
-        |> on "change"
 
 
 port persistModel : Json.Encode.Value -> Cmd msg
