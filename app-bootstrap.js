@@ -29,8 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
 										if (!jobQueueEntry.data.hasOwnProperty('worklog')) {
 											jobQueueEntry.data.worklog = [];
 										}
-										if (!jobQueueEntry.history.hasOwnProperty('events')) {
-											jobQueueEntry.history.events = [];
+										if (!jobQueueEntry.hasOwnProperty('history')) {
+											jobQueueEntry.history = {events: []};
 										}
 									});
 									multitaskos.ports.syncModelFromDatabase.send(model);

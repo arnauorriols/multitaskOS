@@ -3,6 +3,7 @@ module Metrics
         ( State
         , init
         , getEvents
+        , lastEvent
         , Config
         , config
         , encode
@@ -17,17 +18,22 @@ import Task
 
 
 type State msg
-    = State (List (Event msg)) (Msg msg)
+    = State (List (Event msg))
 
 
 init : State msg
 init =
-    State [] NoOp
+    State []
 
 
 getEvents : State msg -> List ( msg, Float )
-getEvents (State events _) =
+getEvents (State events) =
     List.map (\(Event msg timestamp) -> ( msg, timestamp )) events
+
+
+lastEvent : State msg -> Maybe ( msg, Float )
+lastEvent history =
+    getEvents history |> List.head
 
 
 type alias Timestamp =
@@ -38,59 +44,40 @@ type Event msg
     = Event msg Timestamp
 
 
-type Config msg model
+type Config msg
     = Config
-        { trackedMsgs : List msg
-        , modelGetter : model -> State msg
-        , msgEncoder : msg -> Json.Encode.Value
+        { msgEncoder : msg -> Json.Encode.Value
         , msgDecoder : Json.Decode.Decoder msg
         , toMsg : State msg -> msg
         }
 
 
 config :
-    { trackedMsgs : List msg
-    , modelGetter : model -> State msg
-    , msgEncoder : msg -> Json.Encode.Value
+    { msgEncoder : msg -> Json.Encode.Value
     , msgDecoder : Json.Decode.Decoder msg
     , toMsg : State msg -> msg
     }
-    -> Config msg model
+    -> Config msg
 config c =
     Config c
 
 
-type Msg msg
-    = Collect msg Time.Time
-    | NoOp
-
-
-track : Config msg model -> msg -> model -> Cmd msg
-track (Config { trackedMsgs, modelGetter, toMsg }) msg model =
+track : Config msg -> State msg -> msg -> Cmd msg
+track (Config { toMsg }) (State history) msg =
     let
-        storeTask msg timestamp history =
-            Task.succeed (State ((Event msg (Time.inMilliseconds timestamp)) :: history) NoOp)
+        storeTask msg history timestamp =
+            Task.succeed (State ((Event msg (Time.inMilliseconds timestamp)) :: history))
 
-        storeCmd =
-            case modelGetter model of
-                State history (Collect msg timestamp) ->
-                    Task.perform toMsg (storeTask msg timestamp history)
+        getTimestampTask =
+            Time.now
 
-                state ->
-                    Cmd.none
-
-        collectCmd =
-            if List.member msg trackedMsgs then
-                case modelGetter model of
-                    State history _ ->
-                        Task.perform (Collect msg >> State history >> toMsg) Time.now
-            else
-                Cmd.none
+        getTimestampAndStoreTask =
+            getTimestampTask |> Task.andThen (storeTask msg history)
     in
-        Cmd.batch [ storeCmd, collectCmd ]
+        Task.perform toMsg getTimestampAndStoreTask
 
 
-encode : Config msg model -> State msg -> Json.Encode.Value
+encode : Config msg -> State msg -> Json.Encode.Value
 encode (Config { msgEncoder }) state =
     let
         encodeMsgRecord msg timestamp =
@@ -109,30 +96,14 @@ encode (Config { msgEncoder }) state =
                     )
                     events
                 )
-
-        encodeInternalMsg internalMsg =
-            case internalMsg of
-                Collect msg timestamp ->
-                    Json.Encode.object
-                        [ ( "msg", Json.Encode.string "Collect" )
-                        , ( "data", encodeMsgRecord msg timestamp )
-                        ]
-
-                NoOp ->
-                    Json.Encode.object
-                        [ ( "msg", Json.Encode.string "NoOp" )
-                        , ( "data", Json.Encode.null )
-                        ]
     in
         case state of
-            State events msg ->
+            State events ->
                 Json.Encode.object
-                    [ ( "events", encodeEvents events )
-                    , ( "metricsMsg", encodeInternalMsg msg )
-                    ]
+                    [ ( "events", encodeEvents events ) ]
 
 
-decoder : Config msg model -> Json.Decode.Decoder (State msg)
+decoder : Config msg -> Json.Decode.Decoder (State msg)
 decoder (Config { msgDecoder }) =
     let
         eventsDecoder =
@@ -142,28 +113,5 @@ decoder (Config { msgDecoder }) =
                     (Json.Decode.field "msg" msgDecoder)
                     (Json.Decode.field "timestamp" Json.Decode.float)
                 )
-
-        internalMsgDecoder =
-            Json.Decode.field "msg" Json.Decode.string
-                |> Json.Decode.andThen
-                    (\msg ->
-                        case msg of
-                            "Collect" ->
-                                Json.Decode.field "data"
-                                    (Json.Decode.map2
-                                        Collect
-                                        (Json.Decode.field "msg" msgDecoder)
-                                        (Json.Decode.field "timestamp" Json.Decode.float)
-                                    )
-
-                            "NoOp" ->
-                                Json.Decode.succeed NoOp
-
-                            other ->
-                                Json.Decode.fail ("Don't know how to decode " ++ other)
-                    )
     in
-        Json.Decode.map2
-            State
-            (Json.Decode.field "events" eventsDecoder)
-            (Json.Decode.field "metricsMsg" internalMsgDecoder)
+        Json.Decode.map State (Json.Decode.field "events" eventsDecoder)

@@ -27,7 +27,6 @@ type alias Model =
     , viewType : ViewType
     , graphState : Graph.State
     , graphConfig : GraphConfigState
-    , msgBeingTracked : Msg
     }
 
 
@@ -40,7 +39,6 @@ init =
     , viewType = WorklogView
     , graphState = Graph.init
     , graphConfig = graphConfigStateInit
-    , msgBeingTracked = NoOp
     }
 
 
@@ -172,7 +170,7 @@ decoder =
                     (Json.Decode.field "history" (Metrics.decoder metricsConfig))
                 )
     in
-        Json.Decode.map8
+        Json.Decode.map7
             Model
             (Json.Decode.field "jobQueue" jobQueueDecoder)
             (Json.Decode.field "nextJobStatus" jobStatusDecoder)
@@ -181,7 +179,6 @@ decoder =
             (Json.Decode.succeed WorklogView)
             (Json.Decode.succeed Graph.init)
             (Json.Decode.succeed graphConfigStateInit)
-            (Json.Decode.succeed NoOp)
 
 
 decodeValue : Json.Encode.Value -> Model
@@ -294,8 +291,8 @@ update action model =
                     ( model, Cmd.none )
 
         NextJob (MetricsMsg newHistory) ->
-            case model.msgBeingTracked of
-                NextJob Execute ->
+            case Metrics.lastEvent newHistory of
+                Just ( NextJob Execute, ts_ ) ->
                     case List.Extra.uncons model.jobQueue of
                         Just ( job, restQueue ) ->
                             ( { model | jobQueue = { job | history = newHistory } :: restQueue }, Cmd.none )
@@ -303,7 +300,7 @@ update action model =
                         Nothing ->
                             ( model, Cmd.none )
 
-                ActiveJob Yield ->
+                Just ( ActiveJob Yield, ts_ ) ->
                     case
                         (List.Extra.updateAt
                             ((List.length model.jobQueue) - 1)
@@ -797,38 +794,10 @@ subscriptions model =
         ]
 
 
-metricsConfig : Metrics.Config Msg Model
+metricsConfig : Metrics.Config Msg
 metricsConfig =
     Metrics.config
-        { trackedMsgs = [ NextJob Execute, ActiveJob Yield ]
-        , modelGetter =
-            (\model ->
-                case model.msgBeingTracked of
-                    NextJob Execute ->
-                        case List.head model.jobQueue of
-                            Just job ->
-                                job.history
-
-                            Nothing ->
-                                Metrics.init
-
-                    ActiveJob Yield ->
-                        case
-                            (List.Extra.getAt
-                                ((List.length model.jobQueue) - 1)
-                                model.jobQueue
-                            )
-                        of
-                            Just job ->
-                                job.history
-
-                            Nothing ->
-                                Metrics.init
-
-                    _ ->
-                        Metrics.init
-            )
-        , msgEncoder =
+        { msgEncoder =
             (\msg ->
                 case msg of
                     NextJob Execute ->
@@ -876,19 +845,20 @@ main =
                     ( model2, cmd1 ) =
                         update msg model
 
-                    model3 =
-                        case msg of
-                            NextJob Execute ->
-                                { model2 | msgBeingTracked = msg }
-
-                            ActiveJob Yield ->
-                                { model2 | msgBeingTracked = msg }
-
-                            _ ->
-                                model2
+                    jobTracked : Maybe (QueuePosition Job.Model)
+                    jobTracked =
+                        List.head model.jobQueue
 
                     cmd2 =
-                        Metrics.track metricsConfig msg model3
+                        case jobTracked of
+                            Just job ->
+                                if List.member msg [ NextJob Execute, ActiveJob Yield ] then
+                                    Metrics.track metricsConfig job.history msg
+                                else
+                                    Cmd.none
+
+                            Nothing ->
+                                Cmd.none
 
                     model2persist =
                         let
@@ -896,14 +866,14 @@ main =
                                 encode model
 
                             newModelEncoded =
-                                encode model3
+                                encode model2
                         in
                             if oldModelEncoded /= newModelEncoded then
                                 Just newModelEncoded
                             else
                                 Nothing
                 in
-                    ( model3
+                    ( model2
                     , Cmd.batch
                         [ case model2persist of
                             Just model ->
