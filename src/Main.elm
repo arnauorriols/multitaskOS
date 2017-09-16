@@ -519,7 +519,7 @@ viewNextScheduledJobTitle model =
                     [ text (hotkeyHintOrReal model.hintsStatus "Alt+N" "") ]
                 ]
     in
-        div [ class "row valign-wrapper" ]
+        div [ class "row valign-wrapper flex-inflexible" ]
             (case ( model.nextJobStatus, List.head model.jobQueue ) of
                 ( Queued, Just job ) ->
                     [ span
