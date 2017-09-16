@@ -33,10 +33,10 @@ type State
     | Loading
 
 
-type Config msg
+type Config data msg
     = Config
         { toMsg : State -> msg
-        , reducer : ( Time.Time, Time.Time ) -> ( msg, Time.Time ) -> Time.Time -> Time.Time
+        , reducer : ( Time.Time, Time.Time ) -> ( data, Time.Time ) -> Time.Time -> Time.Time
         , from : Offset
         , groupBy : GroupBy
         , resolution : Resolution
@@ -45,17 +45,17 @@ type Config msg
 
 config :
     { toMsg : State -> msg
-    , reducer : ( Time.Time, Time.Time ) -> ( msg, Time.Time ) -> Time.Time -> Time.Time
+    , reducer : ( Time.Time, Time.Time ) -> ( data, Time.Time ) -> Time.Time -> Time.Time
     , from : Offset
     , groupBy : GroupBy
     , resolution : Resolution
     }
-    -> Config msg
+    -> Config data msg
 config c =
     Config c
 
 
-load : Config msg -> Cmd msg
+load : Config data msg -> Cmd msg
 load (Config { toMsg }) =
     Task.perform (Loaded >> toMsg) Date.now
 
@@ -65,7 +65,7 @@ init =
     Loading
 
 
-view : Config msg -> State -> List ( msg, Time.Time ) -> Html msg
+view : Config data msg -> State -> List ( data, Time.Time ) -> Html msg
 view config state data =
     case state of
         Loaded now ->
@@ -172,7 +172,7 @@ groupDates groupby from to =
         from
 
 
-groupData : GroupBy -> Date.Date -> Date.Date -> List ( msg, Time.Time ) -> List ( msg, Time.Time )
+groupData : GroupBy -> Date.Date -> Date.Date -> List ( data, Time.Time ) -> List ( data, Time.Time )
 groupData groupby now groupDate data =
     let
         ( from, to ) =
@@ -238,12 +238,12 @@ inResolution resolutionConfigured totalSeconds =
             Time.inMinutes totalSeconds
 
 
-viewGraph : Config msg -> Date.Date -> List ( msg, Time.Time ) -> Html msg
+viewGraph : Config data msg -> Date.Date -> List ( data, Time.Time ) -> Html msg
 viewGraph (Config config) now data =
     let
-        groupDataReduced : Date.Date -> List ( msg, Time.Time ) -> Time.Time
-        groupDataReduced groupDate msgs =
-            List.foldl (config.reducer (groupTimeframe config.groupBy now groupDate |> Tuple.mapFirst Date.toTime |> Tuple.mapSecond Date.toTime)) 0 msgs
+        groupDataReduced : Date.Date -> List ( data, Time.Time ) -> Time.Time
+        groupDataReduced groupDate data =
+            List.foldl (config.reducer (groupTimeframe config.groupBy now groupDate |> Tuple.mapFirst Date.toTime |> Tuple.mapSecond Date.toTime)) 0 data
 
         from : Date.Date
         from =

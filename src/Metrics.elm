@@ -17,21 +17,21 @@ import Time
 import Task
 
 
-type State msg
-    = State (List (Event msg))
+type State data
+    = State (List (Event data))
 
 
-init : State msg
+init : State data
 init =
     State []
 
 
-getEvents : State msg -> List ( msg, Float )
+getEvents : State data -> List ( data, Float )
 getEvents (State events) =
-    List.map (\(Event msg timestamp) -> ( msg, timestamp )) events
+    List.map (\(Event data timestamp) -> ( data, timestamp )) events
 
 
-lastEvent : State msg -> Maybe ( msg, Float )
+lastEvent : State data -> Maybe ( data, Float )
 lastEvent history =
     getEvents history |> List.head
 
@@ -40,49 +40,49 @@ type alias Timestamp =
     Float
 
 
-type Event msg
-    = Event msg Timestamp
+type Event data
+    = Event data Timestamp
 
 
-type Config msg
+type Config data msg
     = Config
-        { msgEncoder : msg -> Json.Encode.Value
-        , msgDecoder : Json.Decode.Decoder msg
-        , toMsg : State msg -> msg
+        { dataEncoder : data -> Json.Encode.Value
+        , dataDecoder : Json.Decode.Decoder data
+        , toMsg : State data -> msg
         }
 
 
 config :
-    { msgEncoder : msg -> Json.Encode.Value
-    , msgDecoder : Json.Decode.Decoder msg
-    , toMsg : State msg -> msg
+    { dataEncoder : data -> Json.Encode.Value
+    , dataDecoder : Json.Decode.Decoder data
+    , toMsg : State data -> msg
     }
-    -> Config msg
+    -> Config data msg
 config c =
     Config c
 
 
-track : Config msg -> State msg -> msg -> Cmd msg
-track (Config { toMsg }) (State history) msg =
+track : Config data msg -> State data -> data -> Cmd msg
+track (Config { toMsg }) (State history) data =
     let
-        storeTask msg history timestamp =
-            Task.succeed (State ((Event msg (Time.inMilliseconds timestamp)) :: history))
+        storeTask data history timestamp =
+            Task.succeed (State ((Event data (Time.inMilliseconds timestamp)) :: history))
 
         getTimestampTask =
             Time.now
 
         getTimestampAndStoreTask =
-            getTimestampTask |> Task.andThen (storeTask msg history)
+            getTimestampTask |> Task.andThen (storeTask data history)
     in
         Task.perform toMsg getTimestampAndStoreTask
 
 
-encode : Config msg -> State msg -> Json.Encode.Value
-encode (Config { msgEncoder }) state =
+encode : Config data msg -> State data -> Json.Encode.Value
+encode (Config { dataEncoder }) state =
     let
-        encodeMsgRecord msg timestamp =
+        encodeMetricRecord data timestamp =
             Json.Encode.object
-                [ ( "msg", msgEncoder msg )
+                [ ( "msg", dataEncoder data )
                 , ( "timestamp", Json.Encode.float timestamp )
                 ]
 
@@ -91,8 +91,8 @@ encode (Config { msgEncoder }) state =
                 (List.map
                     (\event ->
                         case event of
-                            Event msg timestamp ->
-                                encodeMsgRecord msg timestamp
+                            Event data timestamp ->
+                                encodeMetricRecord data timestamp
                     )
                     events
                 )
@@ -103,14 +103,14 @@ encode (Config { msgEncoder }) state =
                     [ ( "events", encodeEvents events ) ]
 
 
-decoder : Config msg -> Json.Decode.Decoder (State msg)
-decoder (Config { msgDecoder }) =
+decoder : Config data msg -> Json.Decode.Decoder (State data)
+decoder (Config { dataDecoder }) =
     let
         eventsDecoder =
             Json.Decode.list
                 (Json.Decode.map2
                     Event
-                    (Json.Decode.field "msg" msgDecoder)
+                    (Json.Decode.field "msg" dataDecoder)
                     (Json.Decode.field "timestamp" Json.Decode.float)
                 )
     in

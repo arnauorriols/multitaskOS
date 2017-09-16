@@ -44,7 +44,7 @@ init =
 
 type alias QueuePosition dataModel =
     { data : dataModel
-    , history : Metrics.State Msg
+    , history : Metrics.State ActivityMetric
     }
 
 
@@ -88,7 +88,12 @@ graphConfigStateInit =
     }
 
 
-graphConfig : GraphConfigState -> Graph.Config Msg
+type ActivityMetric
+    = StartActivity
+    | StopActivity
+
+
+graphConfig : GraphConfigState -> Graph.Config ActivityMetric Msg
 graphConfig configState =
     let
         ensureMax10Columns : Int -> Int -> Int
@@ -104,19 +109,16 @@ graphConfig configState =
             , groupBy = Graph.groupBy configState.offsetUnit (ensureMax10Columns configState.offsetAmmount 1)
             , resolution = Graph.resolution configState.resolutionUnit
             , reducer =
-                \( from, to ) ( msg, timestamp ) accumulated ->
-                    case msg of
-                        NextJob Execute ->
+                \( from, to ) ( data, timestamp ) accumulated ->
+                    case data of
+                        StartActivity ->
                             if accumulated == 0 then
                                 to - timestamp
                             else
                                 accumulated - (timestamp - from)
 
-                        ActiveJob Yield ->
+                        StopActivity ->
                             accumulated + (timestamp - from)
-
-                        _ ->
-                            Debug.crash ("There's an intruder msg in the metrics!")
             }
 
 
@@ -211,7 +213,7 @@ type NextJobMsg
     = Execute
     | Skip
     | Drop
-    | MetricsMsg (Metrics.State Msg)
+    | MetricsMsg (Metrics.State ActivityMetric)
     | NextJobMsg Job.Msg
 
 
@@ -292,7 +294,7 @@ update action model =
 
         NextJob (MetricsMsg newHistory) ->
             case Metrics.lastEvent newHistory of
-                Just ( NextJob Execute, ts_ ) ->
+                Just ( StartActivity, ts_ ) ->
                     case List.Extra.uncons model.jobQueue of
                         Just ( job, restQueue ) ->
                             ( { model | jobQueue = { job | history = newHistory } :: restQueue }, Cmd.none )
@@ -300,7 +302,7 @@ update action model =
                         Nothing ->
                             ( model, Cmd.none )
 
-                Just ( ActiveJob Yield, ts_ ) ->
+                Just ( StopActivity, ts_ ) ->
                     case
                         (List.Extra.updateAt
                             ((List.length model.jobQueue) - 1)
@@ -314,7 +316,7 @@ update action model =
                         Nothing ->
                             ( model, Cmd.none )
 
-                _ ->
+                Nothing ->
                     ( model, Cmd.none )
 
         ActiveJob Yield ->
@@ -794,34 +796,31 @@ subscriptions model =
         ]
 
 
-metricsConfig : Metrics.Config Msg
+metricsConfig : Metrics.Config ActivityMetric Msg
 metricsConfig =
     Metrics.config
-        { msgEncoder =
-            (\msg ->
-                case msg of
-                    NextJob Execute ->
+        { dataEncoder =
+            (\data ->
+                case data of
+                    StartActivity ->
                         Json.Encode.string "NextJob Execute"
 
-                    ActiveJob Yield ->
+                    StopActivity ->
                         Json.Encode.string "ActiveJob Yield"
-
-                    _ ->
-                        Json.Encode.null
             )
-        , msgDecoder =
+        , dataDecoder =
             Json.Decode.string
                 |> Json.Decode.andThen
-                    (\msg ->
-                        case msg of
+                    (\data ->
+                        case data of
                             "NextJob Execute" ->
-                                Json.Decode.succeed (NextJob Execute)
+                                Json.Decode.succeed (StartActivity)
 
                             "ActiveJob Yield" ->
-                                Json.Decode.succeed (ActiveJob Yield)
+                                Json.Decode.succeed (StopActivity)
 
                             _ ->
-                                Json.Decode.fail ("The msg " ++ msg ++ " is not being tracked!")
+                                Json.Decode.fail ("Cannot decode " ++ data)
                     )
         , toMsg = MetricsMsg >> NextJob
         }
@@ -840,40 +839,40 @@ main =
                         ( init, Cmd.none )
         , view = view
         , update =
-            \msg model ->
+            \msg oldModel ->
                 let
-                    ( model2, cmd1 ) =
-                        update msg model
+                    ( newModel, businessCmd ) =
+                        update msg oldModel
 
                     jobTracked : Maybe (QueuePosition Job.Model)
                     jobTracked =
-                        List.head model.jobQueue
+                        List.head oldModel.jobQueue
 
-                    cmd2 =
-                        case jobTracked of
-                            Just job ->
-                                if List.member msg [ NextJob Execute, ActiveJob Yield ] then
-                                    Metrics.track metricsConfig job.history msg
-                                else
-                                    Cmd.none
+                    trackMetricsCmd =
+                        case ( jobTracked, msg ) of
+                            ( Just job, NextJob Execute ) ->
+                                Metrics.track metricsConfig job.history (StartActivity)
 
-                            Nothing ->
+                            ( Just job, ActiveJob Yield ) ->
+                                Metrics.track metricsConfig job.history (StopActivity)
+
+                            _ ->
                                 Cmd.none
 
                     model2persist =
                         let
                             oldModelEncoded =
-                                encode model
+                                encode oldModel
 
                             newModelEncoded =
-                                encode model2
+                                encode newModel
                         in
                             if oldModelEncoded /= newModelEncoded then
                                 Just newModelEncoded
                             else
                                 Nothing
                 in
-                    ( model2
+                    ( newModel
                     , Cmd.batch
                         [ case model2persist of
                             Just model ->
@@ -881,8 +880,8 @@ main =
 
                             Nothing ->
                                 Cmd.none
-                        , cmd1
-                        , cmd2
+                        , businessCmd
+                        , trackMetricsCmd
                         ]
                     )
         , subscriptions = subscriptions
