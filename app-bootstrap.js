@@ -32,6 +32,9 @@ document.addEventListener('DOMContentLoaded', function() {
 										if (!jobQueueEntry.hasOwnProperty('history')) {
 											jobQueueEntry.history = {events: []};
 										}
+										if (!jobQueueEntry.history.hasOwnProperty('events')) {
+											jobQueueEntry.history.events = [];
+										}
 									});
 									multitaskos.ports.syncModelFromDatabase.send(model);
 								}
