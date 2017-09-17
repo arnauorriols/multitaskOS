@@ -26,3 +26,4 @@
 24. I can start an authenticated session in any machine and continue later in any another machine
 25. I can edit the title of an existing job
 26. I can see how much time I have been working on a job every day in a graph
+27. I can Install the app as a native Android app (PWA)
