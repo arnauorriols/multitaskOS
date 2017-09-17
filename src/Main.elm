@@ -30,6 +30,19 @@ type alias Model =
     }
 
 
+type alias ModelPersisted =
+    { jobQueue : List (QueuePosition Job.Model)
+    , nextJobStatus : JobStatus
+    }
+
+
+modelPersisted : Model -> ModelPersisted
+modelPersisted model =
+    { jobQueue = model.jobQueue
+    , nextJobStatus = model.nextJobStatus
+    }
+
+
 init : Model
 init =
     { jobQueue = []
@@ -122,7 +135,7 @@ graphConfig configState =
             }
 
 
-encode : Model -> Json.Encode.Value
+encode : ModelPersisted -> Json.Encode.Value
 encode model =
     let
         encodeStatus status =
@@ -135,14 +148,14 @@ encode model =
                         "Queued"
                 )
 
-        encodeJob job =
+        encodeJobQueue job =
             Json.Encode.object
                 [ ( "data", Job.encode job.data )
                 , ( "history", Metrics.encode metricsConfig job.history )
                 ]
     in
         Json.Encode.object
-            [ ( "jobQueue", Json.Encode.list (List.map encodeJob model.jobQueue) )
+            [ ( "jobQueue", Json.Encode.list (List.map encodeJobQueue model.jobQueue) )
             , ( "nextJobStatus", encodeStatus model.nextJobStatus )
             ]
 
@@ -861,14 +874,14 @@ main =
 
                     model2persist =
                         let
-                            oldModelEncoded =
-                                encode oldModel
+                            oldModelPersisted =
+                                modelPersisted oldModel
 
-                            newModelEncoded =
-                                encode newModel
+                            newModelPersisted =
+                                modelPersisted newModel
                         in
-                            if oldModelEncoded /= newModelEncoded then
-                                Just newModelEncoded
+                            if oldModelPersisted /= newModelPersisted then
+                                Just newModelPersisted
                             else
                                 Nothing
                 in
@@ -876,7 +889,7 @@ main =
                     , Cmd.batch
                         [ case model2persist of
                             Just model ->
-                                persistModel model
+                                encode model |> persistModel
 
                             Nothing ->
                                 Cmd.none
