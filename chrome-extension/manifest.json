@@ -25,7 +25,8 @@
   "icons": {
       "16": "assets/icons/icon-16.png",
       "48": "assets/icons/icon-48.png",
-      "128": "assets/icons/icon-128.png"
+      "128": "assets/icons/icon-128.png",
+      "144": "assets/icons/icon-144.png"
   },
 
   "content_security_policy":"script-src 'self' https://www.gstatic.com/ https://*.firebaseio.com https://www.googleapis.com https://apis.google.com; object-src 'self'",
