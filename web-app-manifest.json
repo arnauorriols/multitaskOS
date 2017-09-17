@@ -1,0 +1,31 @@
+{
+  "short_name": "MultitaskOS",
+  "name": "MultitaskOS",
+  "description": "Multitasking and Context-switching assistant",
+  "icons": [
+    {
+      "src": "assets/icons/icon-16.png",
+      "type": "image/png",
+      "sizes": "16x16"
+    },
+    {
+      "src": "assets/icons/icon-48.png",
+      "type": "image/png",
+      "sizes": "48x48"
+    },
+    {
+      "src": "assets/icons/icon-128.png",
+      "type": "image/png",
+      "sizes": "128x128"
+    },
+    {
+      "src": "assets/icons/icon-144.png",
+      "type": "image/png",
+      "sizes": "144x144"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#00acc1",
+  "background_color": "#00acc1"
+}

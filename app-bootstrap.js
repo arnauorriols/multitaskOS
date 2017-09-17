@@ -112,8 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				}
     });
 
-		// Hide URL bar
-		if(navigator.userAgent.match(/Android/i)){
-			window.scrollTo(0,1);
+		if (navigator.serviceWorker) {
+			navigator.serviceWorker.register('dummy-service-worker.js', {scope: './'});
 		}
 });
