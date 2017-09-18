@@ -112,7 +112,16 @@ document.addEventListener('DOMContentLoaded', function() {
 				}
     });
 
+		// Register dummy serviceWorker for install to home screen banner in Android to appear
 		if (navigator.serviceWorker) {
 			navigator.serviceWorker.register('dummy-service-worker.js', {scope: './'});
 		}
+
+		// Set version number under logo. Note: this is experimental, under probation.
+		$.get('elm-package.json')
+			.then(function (data) {
+				var version = data.version;
+				var styleElement = document.head.appendChild(document.createElement('style'));
+				styleElement.innerHTML = '.brand-logo:after { content: "v' + version + '";}';
+			});
 });
