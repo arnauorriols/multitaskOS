@@ -14,6 +14,7 @@ import Hotkey
 import Job
 import Metrics
 import Graph
+import Helpcard
 
 
 -- MODEL
@@ -606,39 +607,29 @@ viewContextSwitchingControls model =
 
 viewNextScheduledJobWorklog : Model -> Html Msg
 viewNextScheduledJobWorklog model =
-    let
-        help =
-            let
-                bulletList =
-                    ul [ class "browser-default" ]
+    case List.head model.jobQueue of
+        Just job ->
+            Job.viewWorklog (model.nextJobStatus == Active) job.data |> Html.map (NextJobMsg >> NextJob)
 
-                bullet content =
-                    li
-                        [ class "browser-default"
-                        , style
-                            [ ( "list-style-type", "disc" ) ]
-                        ]
-                        [ text content ]
-            in
-                p [ class "flex-scrollable left-align card-panel teal lighten-4 grey-text text-darken-3" ]
-                    [ text "Looks like you are new around here! Let me give you a few hints to get started:"
-                    , bulletList
-                        [ bullet "The goal of this tool is to help you manage the overhead of doing multiple tasks at the same time"
-                        , bullet "Tasks in MultitaskOS are called \"jobs\". Click on the button above to create your first job"
-                        , bullet "New jobs are scheduled to a queue. MultitaskOS will take care of deciding for you which is the next job you have to work on"
-                        , bullet "Each job has a journal to keep a detailed log of any relevant information you might need in the future when coming back to it"
-                        , bullet "You can yield a job at any time, and resume working on the next one"
-                        , bullet "Thanks to the journal, you can dump or load the context of a job at any time, so that you don't need to keep it in your head!"
-                        , bullet "Find out about the hotkeys available by clicking on the help icon on the left-bottom corner, or using the ALT+H hotkey"
-                        ]
-                    ]
-    in
-        case List.head model.jobQueue of
-            Just job ->
-                Job.viewWorklog (model.nextJobStatus == Active) job.data |> Html.map (NextJobMsg >> NextJob)
+        Nothing ->
+            viewInitialHelpCard
 
-            Nothing ->
-                help
+
+viewInitialHelpCard : Html Msg
+viewInitialHelpCard =
+    Helpcard.view
+        [ Helpcard.text "Looks like you are new around here! Let me give you a few hints to get started:"
+        , (Helpcard.bulletlist
+            [ Helpcard.bullet "The goal of this tool is to help you manage the overhead of doing multiple tasks at the same time"
+            , Helpcard.bullet "Tasks in MultitaskOS are called \"jobs\". Click on the button above to create your first job"
+            , Helpcard.bullet "New jobs are scheduled to a queue. MultitaskOS will take care of deciding for you which is the next job you have to work on"
+            , Helpcard.bullet "Each job has a journal to keep a detailed log of any relevant information you might need in the future when coming back to it"
+            , Helpcard.bullet "You can yield a job at any time, and resume working on the next one"
+            , Helpcard.bullet "Thanks to the journal, you can dump or load the context of a job at any time, so that you don't need to keep it in your head!"
+            , Helpcard.bullet "Find out about the hotkeys available by clicking on the help icon on the left-bottom corner, or using the ALT+H hotkey"
+            ]
+          )
+        ]
 
 
 viewActiveJobWorklogForm : Model -> Html Msg

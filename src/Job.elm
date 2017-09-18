@@ -25,6 +25,7 @@ import Dom
 import Task
 import EditableElement
 import Utils
+import Helpcard
 
 
 -- MODEL
@@ -279,32 +280,7 @@ viewWorklog : Bool -> Model -> Html Msg
 viewWorklog editable model =
     case savedWorklog model.worklog of
         [] ->
-            let
-                bulletList =
-                    ul [ class "browser-default" ]
-
-                bullet content =
-                    li
-                        [ class "browser-default"
-                        , style
-                            [ ( "list-style-type", "disc" ) ]
-                        ]
-                        [ text content ]
-            in
-                p [ class "card-panel flex-scrollable teal lighten-4 grey-text text-darken-3" ]
-                    [ text "Looks like you haven't started working on this job yet. Let me give you a few hints to get started:"
-                    , bulletList
-                        [ bullet "To skip this job and jump to the next job in the queue, click \"SKIP\" or use ALT+S hotkey"
-                        , bullet "To delete this job altogether, click \"DROP\" or use ALT+R hotkey"
-                        , bullet "To start working on this job, click \"GO!\" or use ALT+G hotkey"
-                        , bulletList
-                            [ bullet "When you are working on the job, you can add new entries to the job journal. Add as many as possible, so that you can quickly remember all the context of the job when you get back to it at another time!"
-                            , bullet "When you have to stop working on the job, click \"YIELD\" or use ALT+Y. When a job is yielded, it is put back to the end of the queue, and you can start working on the next one"
-                            , bullet
-                                "When you have finished working on the job, click \"FINISH\" or use ALT+C"
-                            ]
-                        ]
-                    ]
+            viewEmptyJobHelpCard
 
         worklogs ->
             let
@@ -362,6 +338,24 @@ viewWorklog editable model =
                                 EditableElement.view config worklogEntryWidgetState worklogEntryContent
                         )
                         worklogs
+
+
+viewEmptyJobHelpCard : Html Msg
+viewEmptyJobHelpCard =
+    Helpcard.view
+        [ Helpcard.text "Looks like you haven't started working on this job yet. Let me give you a few hints to get started:"
+        , Helpcard.bulletlist
+            [ Helpcard.bullet "To skip this job and jump to the next job in the queue, click \"SKIP\" or use ALT+S hotkey"
+            , Helpcard.bullet "To delete this job altogether, click \"DROP\" or use ALT+R hotkey"
+            , Helpcard.bullet "To start working on this job, click \"GO!\" or use ALT+G hotkey"
+            , Helpcard.nbulletlist
+                [ Helpcard.bullet "When you are working on the job, you can add new entries to the job journal. Add as many as possible, so that you can quickly remember all the context of the job when you get back to it at another time!"
+                , Helpcard.bullet "When you have to stop working on the job, click \"YIELD\" or use ALT+Y. When a job is yielded, it is put back to the end of the queue, and you can start working on the next one"
+                , Helpcard.bullet
+                    "When you have finished working on the job, click \"FINISH\" or use ALT+C"
+                ]
+            ]
+        ]
 
 
 {-| Present the form to add new entried to the job's journal
