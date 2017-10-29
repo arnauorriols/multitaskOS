@@ -1,10 +1,10 @@
-module Helpcard exposing (view, bullet, bulletlist, nbulletlist, text)
+module Helpcard exposing (view, bulletlist, text)
 
 import Html
 import Html.Attributes
 
 
-view : List HelpcardElement -> Html.Html msg
+view : List Element -> Html.Html msg
 view elements =
     Html.p
         [ Html.Attributes.class "flex-scrollable left-align card-panel teal lighten-4 grey-text text-darken-3" ]
@@ -21,13 +21,13 @@ view elements =
         )
 
 
-viewBulletlist : List Bullet -> Html.Html msg
+viewBulletlist : List Element -> Html.Html msg
 viewBulletlist bullets =
     Html.ul [ Html.Attributes.class "browser-default" ]
         (List.map
             (\bullet ->
                 case bullet of
-                    Bullet content ->
+                    Text content ->
                         Html.li
                             [ Html.Attributes.class "browser-default"
                             , Html.Attributes.style
@@ -35,38 +35,23 @@ viewBulletlist bullets =
                             ]
                             [ Html.text content ]
 
-                    Nested nestedBullets ->
+                    Bulletlist nestedBullets ->
                         viewBulletlist nestedBullets
             )
             bullets
         )
 
 
-type Bullet
-    = Bullet String
-    | Nested (List Bullet)
-
-
-type HelpcardElement
+type Element
     = Text String
-    | Bulletlist (List Bullet)
+    | Bulletlist (List Element)
 
 
-bullet : String -> Bullet
-bullet content =
-    Bullet content
-
-
-nbulletlist : List Bullet -> Bullet
-nbulletlist bulletlist =
-    Nested bulletlist
-
-
-bulletlist : List Bullet -> HelpcardElement
+bulletlist : List Element -> Element
 bulletlist bullets =
     Bulletlist bullets
 
 
-text : String -> HelpcardElement
+text : String -> Element
 text content =
     Text content
