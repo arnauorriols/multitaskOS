@@ -26,6 +26,7 @@ import Date.Extra.Compare
 import Date.Extra.Config
 import Date.Extra.Config.Config_en_us
 import Plot
+import Helpcard
 
 
 type State
@@ -67,11 +68,21 @@ init =
 
 view : Config data msg -> State -> List ( data, Time.Time ) -> Html msg
 view config state data =
-    case state of
-        Loaded now ->
+    case ( data, state ) of
+        ( [], _ ) ->
+            Helpcard.view
+                [ Helpcard.text "You haven't started with this Job yet. This is what you'll see when you start:"
+                , Helpcard.bulletlist
+                    [ Helpcard.text "A histogram of all the time worked on this card each day"
+                    , Helpcard.text "You can change the resolution and time range using the control inputs above the graph"
+                    ]
+                , Helpcard.text "This is an experimental feature. More functionality is expected in the next releases"
+                ]
+
+        ( data, Loaded now ) ->
             viewGraph config now data
 
-        Loading ->
+        ( data, Loading ) ->
             Html.text "loading"
 
 

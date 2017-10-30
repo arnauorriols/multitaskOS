@@ -623,10 +623,15 @@ viewInitialHelpCard =
             [ Helpcard.text "The goal of this tool is to help you manage the overhead of doing multiple tasks at the same time"
             , Helpcard.text "Tasks in MultitaskOS are called \"jobs\". Click on the button above to create your first job"
             , Helpcard.text "New jobs are scheduled to a queue. MultitaskOS will take care of deciding for you which is the next job you have to work on"
-            , Helpcard.text "Each job has a journal to keep a detailed log of any relevant information you might need in the future when coming back to it"
-            , Helpcard.text "You can yield a job at any time, and resume working on the next one"
-            , Helpcard.text "Thanks to the journal, you can dump or load the context of a job at any time, so that you don't need to keep it in your head!"
+            , Helpcard.text "Each job has a journal to keep a detailed log of any relevant information you might need when resuming the job later on"
+            , Helpcard.text "Using the journal, you can dump or load the context of a job at any time. No need to keep it in your head any more!"
             , Helpcard.text "Find out about the hotkeys available by clicking on the help icon on the left-bottom corner, or using the ALT+H hotkey"
+            , Helpcard.text "MultitaskOS is available in the following formats:"
+            , Helpcard.bulletlist
+                [ Helpcard.markdown "Chrome extension: [Chrome Web Store link](https://chrome.google.com/webstore/detail/multitaskos/ocdlpdmejajjjfcmhggnhbeacmgnabad)"
+                , Helpcard.markdown "Website: [Website link](https://arnauorriols.github.io/multitaskOS/)"
+                , Helpcard.text "When using Android, make sure to try the \"install to homescreen\" option in Chrome for the best native-like experience"
+                ]
             ]
           )
         ]

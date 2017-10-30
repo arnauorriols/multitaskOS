@@ -349,11 +349,13 @@ viewEmptyJobHelpCard =
             , Helpcard.text "To delete this job altogether, click \"DROP\" or use ALT+R hotkey"
             , Helpcard.text "To start working on this job, click \"GO!\" or use ALT+G hotkey"
             , Helpcard.bulletlist
-                [ Helpcard.text "When you are working on the job, you can add new entries to the job journal. Add as many as possible, so that you can quickly remember all the context of the job when you get back to it at another time!"
-                , Helpcard.text "When you have to stop working on the job, click \"YIELD\" or use ALT+Y. When a job is yielded, it is put back to the end of the queue, and you can start working on the next one"
+                [ Helpcard.text "When you are working on a job, you can add new entries to its journal. Add as many details as needed, so that you can quickly remember all the context of the job when you get back to it later on. But be careful, remember that you'll need to read it all back, do not clog it with unnecessary stuff!"
+                , Helpcard.text "When you have to stop working on the job, click \"YIELD\" or use ALT+Y. When a job is yielded, it is put back to the end of the queue, and the next job is shown instead"
                 , Helpcard.text
                     "When you have finished working on the job, click \"FINISH\" or use ALT+C"
                 ]
+            , Helpcard.text "Don't worry if you have a typo. The title and journal entries are editable, just click on them"
+            , Helpcard.text "An experimental metrics report is available just by clicking on the graph button at the right. Click it again to switch back to the journal"
             ]
         ]
 
