@@ -625,6 +625,7 @@ viewInitialHelpCard =
             , Helpcard.text "New jobs are scheduled to a queue. MultitaskOS will take care of deciding for you which is the next job you have to work on"
             , Helpcard.text "Each job has a journal to keep a detailed log of any relevant information you might need when resuming the job later on"
             , Helpcard.text "Using the journal, you can dump or load the context of a job at any time. No need to keep it in your head any more!"
+            , Helpcard.text "Log in to enable cloud synchronization. You will have your data available everywhere!"
             , Helpcard.text "Find out about the hotkeys available by clicking on the help icon on the left-bottom corner, or using the ALT+H hotkey"
             , Helpcard.text "MultitaskOS is available in the following formats:"
             , Helpcard.bulletlist
