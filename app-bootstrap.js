@@ -117,8 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			navigator.serviceWorker.register('dummy-service-worker.js', {scope: './'});
 		}
 
-		// Set version number under logo. Note: this is experimental, under probation.
-		$.get('elm-package.json')
+		$.get('elm-package.json', null, null, 'json')
 			.then(function (data) {
 				var version = data.version;
 				var styleElement = document.head.appendChild(document.createElement('style'));
