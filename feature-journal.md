@@ -28,3 +28,4 @@
 26. I can see how much time I have been working on a job every day in a graph
 27. I can Install the app as a native Android app (PWA)
 28. I can easily see the version of the app in the UI
+29. I can write multiple lines using ctrl+enter

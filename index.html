@@ -60,6 +60,9 @@
 
   #input-worklog {
       margin-bottom: 0;
+      padding-bottom: 0.7rem;
+      height: auto;
+      min-height: auto;
   }
 
   #delete-worklog-entry-icon {
@@ -109,10 +112,17 @@
       }
   }
 
-  #worklog-entry-edit {
-      border-bottom: none;
-      height: 1.5em;
-      margin-bottom: 0;
+  .worklog-entry {
+      white-space: pre-wrap;
+  }
+
+  .worklog-entry-edit {
+      border-bottom: none !important;
+      margin-bottom: 0 !important;
+      margin-top: 0 !important;
+      padding-bottom: 0.2rem !important;
+      padding-top: 0 !important;
+      min-height: auto !important;
   }
 
   .icon-btn {

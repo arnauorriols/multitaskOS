@@ -262,10 +262,15 @@ triggerTitleEditMode =
 viewTitle : Model -> Html Msg
 viewTitle model =
     let
+        editModeTag =
+            EditableElement.htmlElement
+                "title-edit"
+                (\attributes children -> input (type_ "text" :: attributes) children)
+
         config =
             EditableElement.config
                 { readModeTag = EditableElement.htmlElement "title" span
-                , editModeTag = EditableElement.htmlElement "title-edit" input
+                , editModeTag = editModeTag
                 , editMsg = EditTitle
                 , stateMsg = TitleWidget
                 , editEnabled = True
@@ -301,7 +306,7 @@ viewWorklog editable model =
                         (\attributes children ->
                             let
                                 finalAttributes =
-                                    attributes ++ [ class "collection-item" ]
+                                    attributes ++ [ class "collection-item worklog-entry" ]
 
                                 finalChildren =
                                     if editable then
@@ -316,7 +321,7 @@ viewWorklog editable model =
                     EditableElement.htmlElement
                         "worklog-entry-edit"
                         (\attributes children ->
-                            li [ class "collection-item" ] [ input attributes children ]
+                            li [ class "collection-item worklog-entry" ] [ textarea (attribute "onfocus" "$(this).trigger('autoresize');" :: rows 1 :: class "worklog-entry-edit materialize-textarea" :: attributes) children ]
                         )
             in
                 ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
@@ -366,10 +371,11 @@ viewWorklogForm : String -> Model -> Html Msg
 viewWorklogForm buttonText { worklog } =
     div [ class "row" ]
         [ div [ class "input-field col s8 m10" ]
-            [ input
+            [ textarea
                 [ id "input-worklog"
+                , class "materialize-textarea"
+                , rows 1
                 , value (Tuple.first (unsavedWorklogEntry worklog))
-                , type_ "text"
                 , onInput (Save 0 >> Worklog)
                 , Utils.onEnter NoOp (Worklog Add)
                 ]

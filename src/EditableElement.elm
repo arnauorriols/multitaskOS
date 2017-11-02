@@ -104,7 +104,6 @@ view (Config { readModeTag, editModeTag, editMsg, stateMsg, editEnabled }) state
             ( True, Editing _ ) ->
                 editTag
                     ([ Html.Attributes.id editTagId
-                     , Html.Attributes.type_ "text"
                      , Html.Attributes.value content
                      , Html.Events.onInput editMsg
                      , Html.Events.onBlur (stateMsg ( Cmd.none, Viewing ))
