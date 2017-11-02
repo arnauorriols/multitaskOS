@@ -307,10 +307,11 @@ viewWorklog editable model =
                         (\attributes children ->
                             let
                                 finalAttributes =
-                                    attributes ++ [ class "collection-item worklog-entry" ]
+                                    class "collection-item worklog-entry" :: attributes
 
                                 finalChildren =
                                     if editable then
+                                        -- Cannot prepend the delete icon as with the attrs
                                         children ++ [ deleteIcon worklogEntryIndex ]
                                     else
                                         children
@@ -407,4 +408,4 @@ viewWorklogForm windowSize buttonText { worklog } =
                 ]
                 [ text buttonText ]
             ]
-:x
+        ]
