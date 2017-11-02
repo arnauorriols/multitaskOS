@@ -322,7 +322,16 @@ viewWorklog editable model =
                     EditableElement.htmlElement
                         "worklog-entry-edit"
                         (\attributes children ->
-                            li [ class "collection-item worklog-entry" ] [ textarea (attribute "onfocus" "$(this).trigger('autoresize');" :: rows 1 :: class "worklog-entry-edit materialize-textarea" :: attributes) children ]
+                            li
+                                [ class "collection-item worklog-entry" ]
+                                [ textarea
+                                    (attribute "onfocus" "$(this).trigger('autoresize');"
+                                        :: rows 1
+                                        :: class "worklog-entry-edit materialize-textarea"
+                                        :: attributes
+                                    )
+                                    children
+                                ]
                         )
             in
                 ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
@@ -398,4 +407,4 @@ viewWorklogForm windowSize buttonText { worklog } =
                 ]
                 [ text buttonText ]
             ]
-        ]
+:x
