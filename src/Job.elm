@@ -251,7 +251,7 @@ focusWorklogForm =
 
 triggerTitleEditMode : Msg
 triggerTitleEditMode =
-    EditableElement.triggerEditMode "title-edit" TitleWidget
+    EditableElement.triggerEditMode TitleWidget
 
 
 
@@ -263,21 +263,32 @@ triggerTitleEditMode =
 viewTitle : Model -> Html Msg
 viewTitle model =
     let
-        editModeTag =
-            EditableElement.htmlElement
-                "title-edit"
-                (\attributes children -> input (type_ "text" :: attributes) children)
-
         config =
             EditableElement.config
-                { readModeTag = EditableElement.htmlElement "title" span
-                , editModeTag = editModeTag
-                , editMsg = EditTitle
-                , stateMsg = TitleWidget
+                { stateMsg = TitleWidget
                 , editEnabled = True
                 }
+
+        readOrEditTag =
+            EditableElement.getMode config model.titleWidgetState
     in
-        h4 [ class "grey-text text-darken-2" ] [ EditableElement.view config model.titleWidgetState model.title ]
+        h4
+            [ class "grey-text text-darken-2" ]
+            (case readOrEditTag of
+                EditableElement.ReadMode attributes ->
+                    [ span attributes [ EditableElement.textReadMode model.title ] ]
+
+                EditableElement.EditMode attributes ->
+                    [ input
+                        (class "title-edit"
+                            :: type_ "text"
+                            :: value model.title
+                            :: onInput EditTitle
+                            :: attributes
+                        )
+                        []
+                    ]
+            )
 
 
 {-| Present the list of journal entries of a job
@@ -301,59 +312,49 @@ viewWorklog editable model =
                         ]
                         [ text "delete" ]
 
-                readModeElement worklogEntryIndex =
-                    EditableElement.htmlElement
-                        "worklog-entry"
-                        (\attributes children ->
-                            let
-                                finalAttributes =
-                                    class "collection-item worklog-entry" :: attributes
+                renderWorklogEntry : Int -> WorklogEntry -> Html Msg
+                renderWorklogEntry index ( worklogEntryContent, worklogEntryWidgetState ) =
+                    let
+                        indexCountingUnsavedEntry =
+                            index + 1
 
-                                finalChildren =
-                                    if editable then
-                                        -- Cannot prepend the delete icon as with the attrs
-                                        children ++ [ deleteIcon worklogEntryIndex ]
-                                    else
-                                        children
-                            in
-                                li finalAttributes finalChildren
-                        )
-
-                editModeElement =
-                    EditableElement.htmlElement
-                        "worklog-entry-edit"
-                        (\attributes children ->
-                            li
-                                [ class "collection-item worklog-entry" ]
-                                [ textarea
-                                    (attribute "onfocus" "$(this).trigger('autoresize');"
-                                        :: rows 1
-                                        :: class "worklog-entry-edit materialize-textarea"
+                        config =
+                            EditableElement.config
+                                { stateMsg = WorklogEntryWidget indexCountingUnsavedEntry >> Worklog
+                                , editEnabled = editable
+                                }
+                    in
+                        case EditableElement.getMode config worklogEntryWidgetState of
+                            EditableElement.ReadMode attributes ->
+                                li
+                                    (class "collection-item worklog-entry"
                                         :: attributes
                                     )
-                                    children
-                                ]
-                        )
-            in
-                ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ] <|
-                    List.indexedMap
-                        (\index ( worklogEntryContent, worklogEntryWidgetState ) ->
-                            let
-                                indexCountingUnsavedEntry =
-                                    index + 1
+                                    (if editable then
+                                        -- Cannot prepend the delete icon as with the attrs
+                                        [ EditableElement.textReadMode worklogEntryContent
+                                        , deleteIcon indexCountingUnsavedEntry
+                                        ]
+                                     else
+                                        [ EditableElement.textReadMode worklogEntryContent ]
+                                    )
 
-                                config =
-                                    EditableElement.config
-                                        { readModeTag = readModeElement indexCountingUnsavedEntry
-                                        , editModeTag = editModeElement
-                                        , editMsg = Save indexCountingUnsavedEntry >> Worklog
-                                        , stateMsg = WorklogEntryWidget indexCountingUnsavedEntry >> Worklog
-                                        , editEnabled = editable
-                                        }
-                            in
-                                EditableElement.view config worklogEntryWidgetState worklogEntryContent
-                        )
-                        worklogs
+                            EditableElement.EditMode attributes ->
+                                li
+                                    [ class "collection-item worklog-entry" ]
+                                    [ textarea
+                                        (attribute "onfocus" "$(this).trigger('autoresize');"
+                                            :: rows 1
+                                            :: class "worklog-entry-edit materialize-textarea"
+                                            :: value worklogEntryContent
+                                            :: onInput (Save indexCountingUnsavedEntry >> Worklog)
+                                            :: attributes
+                                        )
+                                        []
+                                    ]
+            in
+                List.indexedMap renderWorklogEntry worklogs
+                    |> ul [ class "grey-text collection with-header flex-scrollable z-depth-1" ]
 
 
 viewEmptyJobHelpCard : Html Msg
