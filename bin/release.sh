@@ -1,5 +1,11 @@
 version=$1
 
+if [[ -z version ]]
+then
+    echo "USAGE: release.sh <version>"
+    exit 1
+fi
+
 git checkout master
 
 
