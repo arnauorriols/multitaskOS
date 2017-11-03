@@ -7,6 +7,8 @@ module EditableElement
         , triggerEditMode
         , getMode
         , textReadMode
+        , markdownReadMode
+        , defaultPlaceholder
         )
 
 import Html
@@ -14,6 +16,7 @@ import Html.Attributes
 import Html.Events
 import Task
 import Dom
+import Markdown
 import Utils
 
 
@@ -101,6 +104,23 @@ textReadMode : String -> Html.Html msg
 textReadMode content =
     if not (String.isEmpty content) then
         Html.text content
+    else
+        defaultPlaceholder
+
+
+markdownOptions : Markdown.Options
+markdownOptions =
+    { githubFlavored = Just { tables = True, breaks = True }
+    , defaultHighlighting = Just "javascript"
+    , sanitize = True
+    , smartypants = True
+    }
+
+
+markdownReadMode : String -> Html.Html msg
+markdownReadMode content =
+    if not (String.isEmpty content) then
+        Markdown.toHtmlWith markdownOptions [ Html.Attributes.class "markdown" ] content
     else
         defaultPlaceholder
 

@@ -56,11 +56,6 @@ asBullet content =
         [ content ]
 
 
-parseMarkdown : String -> Html.Html msg
-parseMarkdown markdown =
-    Markdown.toHtml [ Html.Attributes.class "inline-markdown" ] markdown
-
-
 type Element
     = Text String
     | Markdown String
@@ -80,3 +75,8 @@ text content =
 markdown : String -> Element
 markdown content =
     Markdown content
+
+
+parseMarkdown : String -> Html.Html msg
+parseMarkdown markdown =
+    Markdown.toHtml [ Html.Attributes.class "inline-markdown" ] markdown

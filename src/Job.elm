@@ -332,11 +332,11 @@ viewWorklog editable model =
                                     )
                                     (if editable then
                                         -- Cannot prepend the delete icon as with the attrs
-                                        [ EditableElement.textReadMode worklogEntryContent
+                                        [ EditableElement.markdownReadMode worklogEntryContent
                                         , deleteIcon indexCountingUnsavedEntry
                                         ]
                                      else
-                                        [ EditableElement.textReadMode worklogEntryContent ]
+                                        [ EditableElement.markdownReadMode worklogEntryContent ]
                                     )
 
                             EditableElement.EditMode attributes ->
@@ -367,7 +367,8 @@ viewEmptyJobHelpCard =
             , Helpcard.text "To start working on this job, click \"GO!\" or use ALT+G hotkey"
             , Helpcard.bulletlist
                 [ Helpcard.text "When you are working on a job, you can add new entries to its journal. Add as many details as needed, so that you can quickly remember all the context of the job when you get back to it later on. But be careful, remember that you'll need to read it all back, do not clog it with unnecessary stuff!"
-                , Helpcard.text "New! Now you can write multiple lines in a journal entry, by using shift+enter"
+                , Helpcard.markdown "**New!** Now you can write multiple lines in a journal entry, by using shift+enter"
+                , Helpcard.markdown "**New!** Now you can write using Markdown syntax, check out what you can do [in this cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)"
                 , Helpcard.text "When you have to stop working on the job, click \"YIELD\" or use ALT+Y. When a job is yielded, it is put back to the end of the queue, and the next job is shown instead"
                 , Helpcard.text
                     "When you have finished working on the job, click \"FINISH\" or use ALT+C"
@@ -395,8 +396,8 @@ viewWorklogForm windowSize buttonText { worklog } =
                 []
             , label [ for "input-worklog" ]
                 [ text
-                    (if windowSize.width > 600 then
-                        "New journal entry (tip: shift+enter to add more lines)"
+                    (if windowSize.width > 550 then
+                        "New journal entry (tips: shift+enter, Markdown...!)"
                      else
                         "New journal entry"
                     )

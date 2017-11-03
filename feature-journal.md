@@ -29,3 +29,4 @@
 27. I can Install the app as a native Android app (PWA)
 28. I can easily see the version of the app in the UI
 29. I can write multiple lines using ctrl+enter
+30. I can write using Markdown syntax
