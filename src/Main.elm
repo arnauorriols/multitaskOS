@@ -232,7 +232,8 @@ type NextJobMsg
 
 
 type ActiveJobMsg
-    = Yield
+    = Pause
+    | Yield
     | Finish
     | ActiveJobMsg Job.Msg
 
@@ -333,6 +334,14 @@ update action model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        ActiveJob Pause ->
+            case model.nextJobStatus of
+                Active ->
+                    ( { model | nextJobStatus = Queued }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
         ActiveJob Yield ->
             case model.nextJobStatus of
                 Active ->
@@ -380,6 +389,9 @@ update action model =
 
                         Hotkey.G ->
                             NextJob Execute
+
+                        Hotkey.P ->
+                            ActiveJob Pause
 
                         Hotkey.Y ->
                             ActiveJob Yield
@@ -567,6 +579,11 @@ viewContextSwitchingControls model =
             (case model.nextJobStatus of
                 Active ->
                     [ button
+                        [ class "waves-effect waves-light btn"
+                        , onClick (ActiveJob Pause)
+                        ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Pause") ]
+                    , button
                         [ class "waves-effect waves-light btn"
                         , onClick (ActiveJob Yield)
                         ]

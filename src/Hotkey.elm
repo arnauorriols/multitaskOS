@@ -28,6 +28,7 @@ type Hotkey
     = N
     | S
     | G
+    | P
     | Y
     | R
     | C
@@ -45,6 +46,9 @@ fromChar char =
 
         'g' ->
             Just G
+
+        'p' ->
+            Just P
 
         'y' ->
             Just Y
