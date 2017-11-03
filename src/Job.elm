@@ -23,7 +23,6 @@ import Html.Attributes exposing (..)
 import List.Extra
 import Dom
 import Task
-import Window
 import EditableElement
 import Utils
 import Helpcard
@@ -381,8 +380,8 @@ viewEmptyJobHelpCard =
 
 {-| Present the form to add new entried to the job's journal
 -}
-viewWorklogForm : Window.Size -> String -> Model -> Html Msg
-viewWorklogForm windowSize buttonText { worklog } =
+viewWorklogForm : String -> Model -> Html Msg
+viewWorklogForm buttonText { worklog } =
     div [ class "row" ]
         [ div [ class "input-field col s8 m10" ]
             [ textarea
@@ -395,12 +394,7 @@ viewWorklogForm windowSize buttonText { worklog } =
                 ]
                 []
             , label [ for "input-worklog" ]
-                [ text
-                    (if windowSize.width > 550 then
-                        "New journal entry (tips: shift+enter, Markdown...!)"
-                     else
-                        "New journal entry"
-                    )
+                [ text "tips: shift+enter, Markdown..."
                 ]
             ]
         , div [ class "input-field col s4 m2" ]
