@@ -27,7 +27,8 @@ init =
 type Hotkey
     = N
     | S
-    | G
+    | L
+    | P
     | Y
     | R
     | C
@@ -43,8 +44,11 @@ fromChar char =
         's' ->
             Just S
 
-        'g' ->
-            Just G
+        'l' ->
+            Just L
+
+        'p' ->
+            Just P
 
         'y' ->
             Just Y

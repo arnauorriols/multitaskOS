@@ -9,6 +9,7 @@ import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Update.Extra
 import List.Extra
+import Window
 import Utils
 import Hotkey
 import Job
@@ -28,6 +29,7 @@ type alias Model =
     , viewType : ViewType
     , graphState : Graph.State
     , graphConfig : GraphConfigState
+    , windowSize : Window.Size
     }
 
 
@@ -53,6 +55,7 @@ init =
     , viewType = WorklogView
     , graphState = Graph.init
     , graphConfig = graphConfigStateInit
+    , windowSize = windowSizeInit
     }
 
 
@@ -70,6 +73,11 @@ type JobStatus
 type HotkeyHintStatus
     = Shown
     | Hidden
+
+
+windowSizeInit : Window.Size
+windowSizeInit =
+    { width = 800, height = 600 }
 
 
 hotkeyHintOrReal : HotkeyHintStatus -> String -> String -> String
@@ -186,7 +194,7 @@ decoder =
                     (Json.Decode.field "history" (Metrics.decoder metricsConfig))
                 )
     in
-        Json.Decode.map7
+        Json.Decode.map8
             Model
             (Json.Decode.field "jobQueue" jobQueueDecoder)
             (Json.Decode.field "nextJobStatus" jobStatusDecoder)
@@ -195,6 +203,7 @@ decoder =
             (Json.Decode.succeed WorklogView)
             (Json.Decode.succeed Graph.init)
             (Json.Decode.succeed graphConfigStateInit)
+            (Json.Decode.succeed windowSizeInit)
 
 
 decodeValue : Json.Encode.Value -> Model
@@ -221,6 +230,7 @@ type Msg
     | ToggleViewType
     | SetGraphState Graph.State
     | GraphControls GraphControlsMsg
+    | WindowResize Window.Size
 
 
 type NextJobMsg
@@ -232,7 +242,8 @@ type NextJobMsg
 
 
 type ActiveJobMsg
-    = Yield
+    = Pause
+    | Yield
     | Finish
     | ActiveJobMsg Job.Msg
 
@@ -333,6 +344,14 @@ update action model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        ActiveJob Pause ->
+            case model.nextJobStatus of
+                Active ->
+                    ( { model | nextJobStatus = Queued }, Cmd.none )
+
+                _ ->
+                    ( model, Cmd.none )
+
         ActiveJob Yield ->
             case model.nextJobStatus of
                 Active ->
@@ -378,8 +397,11 @@ update action model =
                         Hotkey.N ->
                             NewJob
 
-                        Hotkey.G ->
+                        Hotkey.L ->
                             NextJob Execute
+
+                        Hotkey.P ->
+                            ActiveJob Pause
 
                         Hotkey.Y ->
                             ActiveJob Yield
@@ -463,6 +485,9 @@ update action model =
                     Result.withDefault ((graphConfigStateInit).offsetAmmount) (String.toInt ammount)
             in
                 ( { model | graphConfig = { graphConfig | offsetAmmount = offsetAmmount } }, Cmd.none )
+
+        WindowResize windowSize ->
+            ( { model | windowSize = windowSize }, Cmd.none )
 
 
 
@@ -568,6 +593,11 @@ viewContextSwitchingControls model =
                 Active ->
                     [ button
                         [ class "waves-effect waves-light btn"
+                        , onClick (ActiveJob Pause)
+                        ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Pause") ]
+                    , button
+                        [ class "waves-effect waves-light btn"
                         , onClick (ActiveJob Yield)
                         ]
                         [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Yield") ]
@@ -583,7 +613,7 @@ viewContextSwitchingControls model =
                         [ class "waves-effect waves-light btn"
                         , onClick (NextJob Execute)
                         ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+G" "Go!") ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+L" "Load") ]
                     , button
                         ([ classList
                             [ ( "waves-effect waves-light btn", True )
@@ -609,7 +639,7 @@ viewNextScheduledJobWorklog : Model -> Html Msg
 viewNextScheduledJobWorklog model =
     case List.head model.jobQueue of
         Just job ->
-            Job.viewWorklog (model.nextJobStatus == Active) job.data |> Html.map (NextJobMsg >> NextJob)
+            Job.viewWorklog model.windowSize (model.nextJobStatus == Active) job.data |> Html.map (NextJobMsg >> NextJob)
 
         Nothing ->
             viewInitialHelpCard
@@ -644,9 +674,9 @@ viewActiveJobWorklogForm model =
         ( Active, Just job ) ->
             let
                 submitButtonText =
-                    hotkeyHintOrReal model.hintsStatus "Enter" "Log"
+                    hotkeyHintOrReal model.hintsStatus "Enter" "Save"
             in
-                Job.viewWorklogForm submitButtonText job.data |> Html.map (ActiveJobMsg >> ActiveJob)
+                Job.viewWorklogForm model.windowSize submitButtonText job.data |> Html.map (ActiveJobMsg >> ActiveJob)
 
         _ ->
             Html.text ""
@@ -803,6 +833,7 @@ subscriptions model =
     Sub.batch
         [ syncModelFromDatabase (decodeValue >> SyncModel)
         , Sub.map (HotkeyMsg >> Hotkey) Hotkey.subscriptions
+        , Window.resizes WindowResize
         ]
 
 
@@ -850,7 +881,7 @@ main =
                             Nothing ->
                                 init
                 in
-                    ( initialModel, Cmd.none )
+                    ( initialModel, Task.perform WindowResize Window.size )
         , view = view
         , update =
             \msg oldModel ->

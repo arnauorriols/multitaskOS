@@ -23,6 +23,7 @@ import Html.Attributes exposing (..)
 import List.Extra
 import Dom
 import Task
+import Window
 import EditableElement
 import Utils
 import Helpcard
@@ -266,6 +267,7 @@ viewTitle model =
             EditableElement.config
                 { stateMsg = TitleWidget
                 , editEnabled = True
+                , submitOnEnter = True
                 }
 
         readOrEditTag =
@@ -292,8 +294,8 @@ viewTitle model =
 
 {-| Present the list of journal entries of a job
 -}
-viewWorklog : Bool -> Model -> Html Msg
-viewWorklog editable model =
+viewWorklog : Window.Size -> Bool -> Model -> Html Msg
+viewWorklog windowSize editable model =
     case savedWorklog model.worklog of
         [] ->
             viewEmptyJobHelpCard
@@ -321,6 +323,7 @@ viewWorklog editable model =
                             EditableElement.config
                                 { stateMsg = WorklogEntryWidget indexCountingUnsavedEntry >> Worklog
                                 , editEnabled = editable
+                                , submitOnEnter = not (Utils.isSmallScreen windowSize)
                                 }
                     in
                         case EditableElement.getMode config worklogEntryWidgetState of
@@ -363,7 +366,7 @@ viewEmptyJobHelpCard =
         , Helpcard.bulletlist
             [ Helpcard.text "To skip this job and jump to the next job in the queue, click \"SKIP\" or use ALT+S hotkey"
             , Helpcard.text "To delete this job altogether, click \"DROP\" or use ALT+R hotkey"
-            , Helpcard.text "To start working on this job, click \"GO!\" or use ALT+G hotkey"
+            , Helpcard.text "To start working on this job, click \"LOAD\" or use ALT+L hotkey"
             , Helpcard.bulletlist
                 [ Helpcard.text "When you are working on a job, you can add new entries to its journal. Add as many details as needed, so that you can quickly remember all the context of the job when you get back to it later on. But be careful, remember that you'll need to read it all back, do not clog it with unnecessary stuff!"
                 , Helpcard.markdown "**New!** Now you can write multiple lines in a journal entry, by using shift+enter"
@@ -380,21 +383,31 @@ viewEmptyJobHelpCard =
 
 {-| Present the form to add new entried to the job's journal
 -}
-viewWorklogForm : String -> Model -> Html Msg
-viewWorklogForm buttonText { worklog } =
+viewWorklogForm : Window.Size -> String -> Model -> Html Msg
+viewWorklogForm windowSize buttonText { worklog } =
     div [ class "row" ]
         [ div [ class "input-field col s8 m10" ]
             [ textarea
-                [ id "input-worklog"
-                , class "materialize-textarea"
-                , rows 1
-                , value (Tuple.first (unsavedWorklogEntry worklog))
-                , onInput (Save 0 >> Worklog)
-                , Utils.onEnter NoOp (Worklog Add)
-                ]
+                ([ id "input-worklog"
+                 , class "materialize-textarea"
+                 , rows 1
+                 , value (Tuple.first (unsavedWorklogEntry worklog))
+                 , onInput (Save 0 >> Worklog)
+                 ]
+                    ++ (if not (Utils.isSmallScreen windowSize) then
+                            [ Utils.onEnter NoOp (Worklog Add) ]
+                        else
+                            []
+                       )
+                )
                 []
             , label [ for "input-worklog" ]
-                [ text "tips: shift+enter, Markdown..."
+                [ text
+                    (if not (Utils.isSmallScreen windowSize) then
+                        "tips: shift+enter, Markdown..."
+                     else
+                        "tips: multi-line, Markdown..."
+                    )
                 ]
             ]
         , div [ class "input-field col s4 m2" ]
