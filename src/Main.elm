@@ -674,7 +674,7 @@ viewActiveJobWorklogForm model =
         ( Active, Just job ) ->
             let
                 submitButtonText =
-                    hotkeyHintOrReal model.hintsStatus "Enter" "Save"
+                    hotkeyHintOrReal model.hintsStatus "Enter" "Log"
             in
                 Job.viewWorklogForm model.windowSize submitButtonText job.data |> Html.map (ActiveJobMsg >> ActiveJob)
 
