@@ -387,7 +387,7 @@ update action model =
                         Hotkey.N ->
                             NewJob
 
-                        Hotkey.G ->
+                        Hotkey.L ->
                             NextJob Execute
 
                         Hotkey.P ->
@@ -600,7 +600,7 @@ viewContextSwitchingControls model =
                         [ class "waves-effect waves-light btn"
                         , onClick (NextJob Execute)
                         ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+G" "Go!") ]
+                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+L" "Load") ]
                     , button
                         ([ classList
                             [ ( "waves-effect waves-light btn", True )

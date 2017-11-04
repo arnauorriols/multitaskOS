@@ -363,7 +363,7 @@ viewEmptyJobHelpCard =
         , Helpcard.bulletlist
             [ Helpcard.text "To skip this job and jump to the next job in the queue, click \"SKIP\" or use ALT+S hotkey"
             , Helpcard.text "To delete this job altogether, click \"DROP\" or use ALT+R hotkey"
-            , Helpcard.text "To start working on this job, click \"GO!\" or use ALT+G hotkey"
+            , Helpcard.text "To start working on this job, click \"LOAD\" or use ALT+L hotkey"
             , Helpcard.bulletlist
                 [ Helpcard.text "When you are working on a job, you can add new entries to its journal. Add as many details as needed, so that you can quickly remember all the context of the job when you get back to it later on. But be careful, remember that you'll need to read it all back, do not clog it with unnecessary stuff!"
                 , Helpcard.markdown "**New!** Now you can write multiple lines in a journal entry, by using shift+enter"
