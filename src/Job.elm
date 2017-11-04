@@ -24,6 +24,7 @@ import List.Extra
 import Dom
 import Task
 import Window
+import Update.Extra
 import EditableElement
 import Utils
 import Helpcard
@@ -231,6 +232,7 @@ update msg model =
 
         Worklog Add ->
             ( { model | worklog = initWorklogEntry :: model.worklog }, Cmd.none )
+                |> Update.Extra.andThen update focusWorklogForm
 
         Worklog (Save index worklogEntryContent) ->
             ( { model | worklog = editWorklogEntryContent index worklogEntryContent model.worklog }, Cmd.none )
