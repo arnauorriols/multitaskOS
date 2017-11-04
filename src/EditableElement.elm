@@ -29,18 +29,21 @@ type Config msg
     = Config
         { stateMsg : ( Cmd msg, State ) -> msg
         , editEnabled : Bool
+        , submitOnEnter : Bool
         }
 
 
 config :
     { stateMsg : ( Cmd msg, State ) -> msg
     , editEnabled : Bool
+    , submitOnEnter : Bool
     }
     -> Config msg
-config { stateMsg, editEnabled } =
+config { stateMsg, editEnabled, submitOnEnter } =
     Config
         { stateMsg = stateMsg
         , editEnabled = editEnabled
+        , submitOnEnter = submitOnEnter
         }
 
 
@@ -75,14 +78,18 @@ triggerEditMode stateMsg =
 
 
 getMode : Config msg -> State -> Mode msg
-getMode (Config { stateMsg, editEnabled }) state =
+getMode (Config { stateMsg, editEnabled, submitOnEnter }) state =
     case ( editEnabled, state ) of
         ( True, Editing _ ) ->
             EditMode
-                [ Html.Attributes.id editTagId
-                , Html.Events.onBlur (stateMsg ( Cmd.none, Viewing ))
-                , Utils.onEnter (stateMsg ( Cmd.none, state )) (stateMsg ( Cmd.none, Viewing ))
-                ]
+                ([ Html.Attributes.id editTagId
+                 , Html.Events.onBlur (stateMsg ( Cmd.none, Viewing ))
+                 ]
+                    ++ if submitOnEnter then
+                        [ Utils.onEnter (stateMsg ( Cmd.none, state )) (stateMsg ( Cmd.none, Viewing )) ]
+                       else
+                        []
+                )
 
         ( True, Viewing ) ->
             ReadMode

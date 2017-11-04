@@ -267,6 +267,7 @@ viewTitle model =
             EditableElement.config
                 { stateMsg = TitleWidget
                 , editEnabled = True
+                , submitOnEnter = True
                 }
 
         readOrEditTag =
@@ -293,8 +294,8 @@ viewTitle model =
 
 {-| Present the list of journal entries of a job
 -}
-viewWorklog : Bool -> Model -> Html Msg
-viewWorklog editable model =
+viewWorklog : Window.Size -> Bool -> Model -> Html Msg
+viewWorklog windowSize editable model =
     case savedWorklog model.worklog of
         [] ->
             viewEmptyJobHelpCard
@@ -322,6 +323,7 @@ viewWorklog editable model =
                             EditableElement.config
                                 { stateMsg = WorklogEntryWidget indexCountingUnsavedEntry >> Worklog
                                 , editEnabled = editable
+                                , submitOnEnter = not (Utils.isSmallScreen windowSize)
                                 }
                     in
                         case EditableElement.getMode config worklogEntryWidgetState of
@@ -386,20 +388,25 @@ viewWorklogForm windowSize buttonText { worklog } =
     div [ class "row" ]
         [ div [ class "input-field col s8 m10" ]
             [ textarea
-                [ id "input-worklog"
-                , class "materialize-textarea"
-                , rows 1
-                , value (Tuple.first (unsavedWorklogEntry worklog))
-                , onInput (Save 0 >> Worklog)
-                , Utils.onEnter NoOp (Worklog Add)
-                ]
+                ([ id "input-worklog"
+                 , class "materialize-textarea"
+                 , rows 1
+                 , value (Tuple.first (unsavedWorklogEntry worklog))
+                 , onInput (Save 0 >> Worklog)
+                 ]
+                    ++ (if not (Utils.isSmallScreen windowSize) then
+                            [ Utils.onEnter NoOp (Worklog Add) ]
+                        else
+                            []
+                       )
+                )
                 []
             , label [ for "input-worklog" ]
                 [ text
-                    (if windowSize.width > 550 then
-                        "New journal entry (tips: shift+enter, Markdown...!)"
+                    (if not (Utils.isSmallScreen windowSize) then
+                        "tips: shift+enter, Markdown..."
                      else
-                        "New journal entry"
+                        "tips: multi-line, Markdown..."
                     )
                 ]
             ]

@@ -639,7 +639,7 @@ viewNextScheduledJobWorklog : Model -> Html Msg
 viewNextScheduledJobWorklog model =
     case List.head model.jobQueue of
         Just job ->
-            Job.viewWorklog (model.nextJobStatus == Active) job.data |> Html.map (NextJobMsg >> NextJob)
+            Job.viewWorklog model.windowSize (model.nextJobStatus == Active) job.data |> Html.map (NextJobMsg >> NextJob)
 
         Nothing ->
             viewInitialHelpCard

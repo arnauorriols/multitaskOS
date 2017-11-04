@@ -1,8 +1,9 @@
-module Utils exposing (onEnter, onChange)
+module Utils exposing (onEnter, onChange, isSmallScreen)
 
 import Html
 import Html.Events
 import Json.Decode
+import Window
 
 
 onEnter : msg -> msg -> Html.Attribute msg
@@ -42,3 +43,8 @@ onChange toMsg =
     Html.Events.targetValue
         |> Json.Decode.map toMsg
         |> Html.Events.on "change"
+
+
+isSmallScreen : Window.Size -> Bool
+isSmallScreen windowSize =
+    windowSize.width < 550
