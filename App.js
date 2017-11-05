@@ -7795,6 +7795,151 @@ var _elm_lang$html$Html$summary = _elm_lang$html$Html$node('summary');
 var _elm_lang$html$Html$menuitem = _elm_lang$html$Html$node('menuitem');
 var _elm_lang$html$Html$menu = _elm_lang$html$Html$node('menu');
 
+var _elm_lang$html$Html_Events$keyCode = A2(_elm_lang$core$Json_Decode$field, 'keyCode', _elm_lang$core$Json_Decode$int);
+var _elm_lang$html$Html_Events$targetChecked = A2(
+	_elm_lang$core$Json_Decode$at,
+	{
+		ctor: '::',
+		_0: 'target',
+		_1: {
+			ctor: '::',
+			_0: 'checked',
+			_1: {ctor: '[]'}
+		}
+	},
+	_elm_lang$core$Json_Decode$bool);
+var _elm_lang$html$Html_Events$targetValue = A2(
+	_elm_lang$core$Json_Decode$at,
+	{
+		ctor: '::',
+		_0: 'target',
+		_1: {
+			ctor: '::',
+			_0: 'value',
+			_1: {ctor: '[]'}
+		}
+	},
+	_elm_lang$core$Json_Decode$string);
+var _elm_lang$html$Html_Events$defaultOptions = _elm_lang$virtual_dom$VirtualDom$defaultOptions;
+var _elm_lang$html$Html_Events$onWithOptions = _elm_lang$virtual_dom$VirtualDom$onWithOptions;
+var _elm_lang$html$Html_Events$on = _elm_lang$virtual_dom$VirtualDom$on;
+var _elm_lang$html$Html_Events$onFocus = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'focus',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onBlur = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'blur',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onSubmitOptions = _elm_lang$core$Native_Utils.update(
+	_elm_lang$html$Html_Events$defaultOptions,
+	{preventDefault: true});
+var _elm_lang$html$Html_Events$onSubmit = function (msg) {
+	return A3(
+		_elm_lang$html$Html_Events$onWithOptions,
+		'submit',
+		_elm_lang$html$Html_Events$onSubmitOptions,
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onCheck = function (tagger) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'change',
+		A2(_elm_lang$core$Json_Decode$map, tagger, _elm_lang$html$Html_Events$targetChecked));
+};
+var _elm_lang$html$Html_Events$onInput = function (tagger) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'input',
+		A2(_elm_lang$core$Json_Decode$map, tagger, _elm_lang$html$Html_Events$targetValue));
+};
+var _elm_lang$html$Html_Events$onMouseOut = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseout',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseOver = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseover',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseLeave = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseleave',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseEnter = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseenter',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseUp = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mouseup',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onMouseDown = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'mousedown',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onDoubleClick = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'dblclick',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$onClick = function (msg) {
+	return A2(
+		_elm_lang$html$Html_Events$on,
+		'click',
+		_elm_lang$core$Json_Decode$succeed(msg));
+};
+var _elm_lang$html$Html_Events$Options = F2(
+	function (a, b) {
+		return {stopPropagation: a, preventDefault: b};
+	});
+
+var _arnauorriols$multitaskos$DirtyHtml_Textarea$resizeFocused = _elm_lang$core$Native_Platform.outgoingPort(
+	'resizeFocused',
+	function (v) {
+		return null;
+	});
+var _arnauorriols$multitaskos$DirtyHtml_Textarea$update = function (msg) {
+	var _p0 = msg;
+	return _arnauorriols$multitaskos$DirtyHtml_Textarea$resizeFocused(
+		{ctor: '_Tuple0'});
+};
+var _arnauorriols$multitaskos$DirtyHtml_Textarea$Config = function (a) {
+	return {ctor: 'Config', _0: a};
+};
+var _arnauorriols$multitaskos$DirtyHtml_Textarea$config = function (_p1) {
+	var _p2 = _p1;
+	return _arnauorriols$multitaskos$DirtyHtml_Textarea$Config(
+		{toMsg: _p2.toMsg});
+};
+var _arnauorriols$multitaskos$DirtyHtml_Textarea$Resize = {ctor: 'Resize'};
+var _arnauorriols$multitaskos$DirtyHtml_Textarea$view = F3(
+	function (_p3, attributes, children) {
+		var _p4 = _p3;
+		var resizeOnFocus = _elm_lang$html$Html_Events$onFocus(
+			_p4._0.toMsg(_arnauorriols$multitaskos$DirtyHtml_Textarea$Resize));
+		return A2(
+			_elm_lang$html$Html$textarea,
+			{ctor: '::', _0: resizeOnFocus, _1: attributes},
+			children);
+	});
+
 var _elm_lang$html$Html_Attributes$map = _elm_lang$virtual_dom$VirtualDom$mapProperty;
 var _elm_lang$html$Html_Attributes$attribute = _elm_lang$virtual_dom$VirtualDom$attribute;
 var _elm_lang$html$Html_Attributes$contextmenu = function (value) {
@@ -8144,121 +8289,6 @@ var _elm_lang$html$Html_Attributes$classList = function (list) {
 				A2(_elm_lang$core$List$filter, _elm_lang$core$Tuple$second, list))));
 };
 var _elm_lang$html$Html_Attributes$style = _elm_lang$virtual_dom$VirtualDom$style;
-
-var _elm_lang$html$Html_Events$keyCode = A2(_elm_lang$core$Json_Decode$field, 'keyCode', _elm_lang$core$Json_Decode$int);
-var _elm_lang$html$Html_Events$targetChecked = A2(
-	_elm_lang$core$Json_Decode$at,
-	{
-		ctor: '::',
-		_0: 'target',
-		_1: {
-			ctor: '::',
-			_0: 'checked',
-			_1: {ctor: '[]'}
-		}
-	},
-	_elm_lang$core$Json_Decode$bool);
-var _elm_lang$html$Html_Events$targetValue = A2(
-	_elm_lang$core$Json_Decode$at,
-	{
-		ctor: '::',
-		_0: 'target',
-		_1: {
-			ctor: '::',
-			_0: 'value',
-			_1: {ctor: '[]'}
-		}
-	},
-	_elm_lang$core$Json_Decode$string);
-var _elm_lang$html$Html_Events$defaultOptions = _elm_lang$virtual_dom$VirtualDom$defaultOptions;
-var _elm_lang$html$Html_Events$onWithOptions = _elm_lang$virtual_dom$VirtualDom$onWithOptions;
-var _elm_lang$html$Html_Events$on = _elm_lang$virtual_dom$VirtualDom$on;
-var _elm_lang$html$Html_Events$onFocus = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'focus',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onBlur = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'blur',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onSubmitOptions = _elm_lang$core$Native_Utils.update(
-	_elm_lang$html$Html_Events$defaultOptions,
-	{preventDefault: true});
-var _elm_lang$html$Html_Events$onSubmit = function (msg) {
-	return A3(
-		_elm_lang$html$Html_Events$onWithOptions,
-		'submit',
-		_elm_lang$html$Html_Events$onSubmitOptions,
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onCheck = function (tagger) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'change',
-		A2(_elm_lang$core$Json_Decode$map, tagger, _elm_lang$html$Html_Events$targetChecked));
-};
-var _elm_lang$html$Html_Events$onInput = function (tagger) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'input',
-		A2(_elm_lang$core$Json_Decode$map, tagger, _elm_lang$html$Html_Events$targetValue));
-};
-var _elm_lang$html$Html_Events$onMouseOut = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseout',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseOver = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseover',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseLeave = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseleave',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseEnter = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseenter',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseUp = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseup',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseDown = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mousedown',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onDoubleClick = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'dblclick',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onClick = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'click',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$Options = F2(
-	function (a, b) {
-		return {stopPropagation: a, preventDefault: b};
-	});
 
 var _elm_lang$core$Task$onError = _elm_lang$core$Native_Scheduler.onError;
 var _elm_lang$core$Task$andThen = _elm_lang$core$Native_Scheduler.andThen;
@@ -16592,6 +16622,79 @@ var _arnauorriols$multitaskos$Hotkey$subscriptions = _elm_lang$core$Platform_Sub
 		}
 	});
 
+var _ccapndave$elm_update_extra$Update_Extra$identity = function (model) {
+	return A2(
+		_elm_lang$core$Platform_Cmd_ops['!'],
+		model,
+		{ctor: '[]'});
+};
+var _ccapndave$elm_update_extra$Update_Extra$mapCmd = F2(
+	function (tagger, _p0) {
+		var _p1 = _p0;
+		return {
+			ctor: '_Tuple2',
+			_0: _p1._0,
+			_1: A2(_elm_lang$core$Platform_Cmd$map, tagger, _p1._1)
+		};
+	});
+var _ccapndave$elm_update_extra$Update_Extra$addCmd = F2(
+	function (cmd_, _p2) {
+		var _p3 = _p2;
+		return {
+			ctor: '_Tuple2',
+			_0: _p3._0,
+			_1: _elm_lang$core$Platform_Cmd$batch(
+				{
+					ctor: '::',
+					_0: _p3._1,
+					_1: {
+						ctor: '::',
+						_0: cmd_,
+						_1: {ctor: '[]'}
+					}
+				})
+		};
+	});
+var _ccapndave$elm_update_extra$Update_Extra$updateModel = F2(
+	function (f, _p4) {
+		var _p5 = _p4;
+		return {
+			ctor: '_Tuple2',
+			_0: f(_p5._0),
+			_1: _p5._1
+		};
+	});
+var _ccapndave$elm_update_extra$Update_Extra$filter = F2(
+	function (pred, f) {
+		return pred ? f : _elm_lang$core$Basics$identity;
+	});
+var _ccapndave$elm_update_extra$Update_Extra$andThen = F3(
+	function (update, msg, _p6) {
+		var _p7 = _p6;
+		var _p8 = A2(update, msg, _p7._0);
+		var model_ = _p8._0;
+		var cmd_ = _p8._1;
+		return {
+			ctor: '_Tuple2',
+			_0: model_,
+			_1: _elm_lang$core$Platform_Cmd$batch(
+				{
+					ctor: '::',
+					_0: _p7._1,
+					_1: {
+						ctor: '::',
+						_0: cmd_,
+						_1: {ctor: '[]'}
+					}
+				})
+		};
+	});
+var _ccapndave$elm_update_extra$Update_Extra$sequence = F3(
+	function (update, msgs, init) {
+		var foldUpdate = _ccapndave$elm_update_extra$Update_Extra$andThen(update);
+		return A3(_elm_lang$core$List$foldl, foldUpdate, init, msgs);
+	});
+
 var _arnauorriols$multitaskos$Job$viewEmptyJobHelpCard = _arnauorriols$multitaskos$Helpcard$view(
 	{
 		ctor: '::',
@@ -16753,6 +16856,12 @@ var _arnauorriols$multitaskos$Job$decoder = A4(
 					}),
 				_elm_lang$core$Json_Decode$string,
 				_elm_lang$core$Json_Decode$succeed(_arnauorriols$multitaskos$EditableElement$initialState)))));
+var _arnauorriols$multitaskos$Job$WorklogInputTextareaMsg = function (a) {
+	return {ctor: 'WorklogInputTextareaMsg', _0: a};
+};
+var _arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg = function (a) {
+	return {ctor: 'WorklogEntryTextareaMsg', _0: a};
+};
 var _arnauorriols$multitaskos$Job$Focus = function (a) {
 	return {ctor: 'Focus', _0: a};
 };
@@ -16912,29 +17021,27 @@ var _arnauorriols$multitaskos$Job$viewWorklog = F3(
 							},
 							{
 								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$textarea,
+								_0: A3(
+									_arnauorriols$multitaskos$DirtyHtml_Textarea$view,
+									_arnauorriols$multitaskos$DirtyHtml_Textarea$config(
+										{toMsg: _arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg}),
 									{
 										ctor: '::',
-										_0: A2(_elm_lang$html$Html_Attributes$attribute, 'onfocus', '$(this).trigger(\'autoresize\');'),
+										_0: _elm_lang$html$Html_Attributes$rows(1),
 										_1: {
 											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$rows(1),
+											_0: _elm_lang$html$Html_Attributes$class('worklog-entry-edit materialize-textarea'),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$class('worklog-entry-edit materialize-textarea'),
+												_0: _elm_lang$html$Html_Attributes$value(_p13),
 												_1: {
 													ctor: '::',
-													_0: _elm_lang$html$Html_Attributes$value(_p13),
-													_1: {
-														ctor: '::',
-														_0: _elm_lang$html$Html_Events$onInput(
-															function (_p12) {
-																return _arnauorriols$multitaskos$Job$Worklog(
-																	A2(_arnauorriols$multitaskos$Job$Save, indexCountingUnsavedEntry, _p12));
-															}),
-														_1: _p11._0
-													}
+													_0: _elm_lang$html$Html_Events$onInput(
+														function (_p12) {
+															return _arnauorriols$multitaskos$Job$Worklog(
+																A2(_arnauorriols$multitaskos$Job$Save, indexCountingUnsavedEntry, _p12));
+														}),
+													_1: _p11._0
 												}
 											}
 										}
@@ -16976,8 +17083,10 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 					},
 					{
 						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$textarea,
+						_0: A3(
+							_arnauorriols$multitaskos$DirtyHtml_Textarea$view,
+							_arnauorriols$multitaskos$DirtyHtml_Textarea$config(
+								{toMsg: _arnauorriols$multitaskos$Job$WorklogInputTextareaMsg}),
 							A2(
 								_elm_lang$core$Basics_ops['++'],
 								{
@@ -17075,6 +17184,11 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 var _arnauorriols$multitaskos$Job$Result = function (a) {
 	return {ctor: 'Result', _0: a};
 };
+var _arnauorriols$multitaskos$Job$Attempt = function (a) {
+	return {ctor: 'Attempt', _0: a};
+};
+var _arnauorriols$multitaskos$Job$focusWorklogForm = _arnauorriols$multitaskos$Job$Focus(
+	_arnauorriols$multitaskos$Job$Attempt('input-worklog'));
 var _arnauorriols$multitaskos$Job$update = F2(
 	function (msg, model) {
 		var _p17 = msg;
@@ -17120,18 +17234,22 @@ var _arnauorriols$multitaskos$Job$update = F2(
 						{titleWidgetState: _p17._0._1}),
 					_1: _p17._0._0
 				};
-			default:
+			case 'Worklog':
 				switch (_p17._0.ctor) {
 					case 'Add':
-						return {
-							ctor: '_Tuple2',
-							_0: _elm_lang$core$Native_Utils.update(
-								model,
-								{
-									worklog: {ctor: '::', _0: _arnauorriols$multitaskos$Job$initWorklogEntry, _1: model.worklog}
-								}),
-							_1: _elm_lang$core$Platform_Cmd$none
-						};
+						return A3(
+							_ccapndave$elm_update_extra$Update_Extra$andThen,
+							_arnauorriols$multitaskos$Job$update,
+							_arnauorriols$multitaskos$Job$focusWorklogForm,
+							{
+								ctor: '_Tuple2',
+								_0: _elm_lang$core$Native_Utils.update(
+									model,
+									{
+										worklog: {ctor: '::', _0: _arnauorriols$multitaskos$Job$initWorklogEntry, _1: model.worklog}
+									}),
+								_1: _elm_lang$core$Platform_Cmd$none
+							});
 					case 'Save':
 						return {
 							ctor: '_Tuple2',
@@ -17163,85 +17281,25 @@ var _arnauorriols$multitaskos$Job$update = F2(
 							_1: _p17._0._1._0
 						};
 				}
+			case 'WorklogEntryTextareaMsg':
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A2(
+						_elm_lang$core$Platform_Cmd$map,
+						_arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg,
+						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p17._0))
+				};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: model,
+					_1: A2(
+						_elm_lang$core$Platform_Cmd$map,
+						_arnauorriols$multitaskos$Job$WorklogInputTextareaMsg,
+						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p17._0))
+				};
 		}
-	});
-var _arnauorriols$multitaskos$Job$Attempt = function (a) {
-	return {ctor: 'Attempt', _0: a};
-};
-var _arnauorriols$multitaskos$Job$focusWorklogForm = _arnauorriols$multitaskos$Job$Focus(
-	_arnauorriols$multitaskos$Job$Attempt('input-worklog'));
-
-var _ccapndave$elm_update_extra$Update_Extra$identity = function (model) {
-	return A2(
-		_elm_lang$core$Platform_Cmd_ops['!'],
-		model,
-		{ctor: '[]'});
-};
-var _ccapndave$elm_update_extra$Update_Extra$mapCmd = F2(
-	function (tagger, _p0) {
-		var _p1 = _p0;
-		return {
-			ctor: '_Tuple2',
-			_0: _p1._0,
-			_1: A2(_elm_lang$core$Platform_Cmd$map, tagger, _p1._1)
-		};
-	});
-var _ccapndave$elm_update_extra$Update_Extra$addCmd = F2(
-	function (cmd_, _p2) {
-		var _p3 = _p2;
-		return {
-			ctor: '_Tuple2',
-			_0: _p3._0,
-			_1: _elm_lang$core$Platform_Cmd$batch(
-				{
-					ctor: '::',
-					_0: _p3._1,
-					_1: {
-						ctor: '::',
-						_0: cmd_,
-						_1: {ctor: '[]'}
-					}
-				})
-		};
-	});
-var _ccapndave$elm_update_extra$Update_Extra$updateModel = F2(
-	function (f, _p4) {
-		var _p5 = _p4;
-		return {
-			ctor: '_Tuple2',
-			_0: f(_p5._0),
-			_1: _p5._1
-		};
-	});
-var _ccapndave$elm_update_extra$Update_Extra$filter = F2(
-	function (pred, f) {
-		return pred ? f : _elm_lang$core$Basics$identity;
-	});
-var _ccapndave$elm_update_extra$Update_Extra$andThen = F3(
-	function (update, msg, _p6) {
-		var _p7 = _p6;
-		var _p8 = A2(update, msg, _p7._0);
-		var model_ = _p8._0;
-		var cmd_ = _p8._1;
-		return {
-			ctor: '_Tuple2',
-			_0: model_,
-			_1: _elm_lang$core$Platform_Cmd$batch(
-				{
-					ctor: '::',
-					_0: _p7._1,
-					_1: {
-						ctor: '::',
-						_0: cmd_,
-						_1: {ctor: '[]'}
-					}
-				})
-		};
-	});
-var _ccapndave$elm_update_extra$Update_Extra$sequence = F3(
-	function (update, msgs, init) {
-		var foldUpdate = _ccapndave$elm_update_extra$Update_Extra$andThen(update);
-		return A3(_elm_lang$core$List$foldl, foldUpdate, init, msgs);
 	});
 
 var _arnauorriols$multitaskos$Metrics$encode = F2(
@@ -17964,7 +18022,7 @@ var _arnauorriols$multitaskos$Main$viewActiveJobWorklogForm = function (model) {
 		_1: _elm_lang$core$List$head(model.jobQueue)
 	};
 	if (((_p22.ctor === '_Tuple2') && (_p22._0.ctor === 'Active')) && (_p22._1.ctor === 'Just')) {
-		var submitButtonText = A3(_arnauorriols$multitaskos$Main$hotkeyHintOrReal, model.hintsStatus, 'Enter', 'Save');
+		var submitButtonText = A3(_arnauorriols$multitaskos$Main$hotkeyHintOrReal, model.hintsStatus, 'Enter', 'Log');
 		return A2(
 			_elm_lang$html$Html$map,
 			function (_p23) {
