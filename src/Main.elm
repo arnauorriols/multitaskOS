@@ -600,7 +600,7 @@ viewNextScheduledJobTitle model =
 viewContextSwitchingControls : Model -> Html Msg
 viewContextSwitchingControls model =
     if not (List.isEmpty model.jobQueue) then
-        div [] <|
+        div [ id "controls-row" ] <|
             (case model.nextJobStatus of
                 Active ->
                     [ button
