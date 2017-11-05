@@ -113,6 +113,7 @@ graphConfigStateInit =
 type ActivityMetric
     = StartActivity
     | StopActivity
+    | PauseActivity
 
 
 graphConfig : GraphConfigState -> Graph.Config ActivityMetric Msg
@@ -140,6 +141,9 @@ graphConfig configState =
                                 accumulated - (timestamp - from)
 
                         StopActivity ->
+                            accumulated + (timestamp - from)
+
+                        PauseActivity ->
                             accumulated + (timestamp - from)
             }
 
@@ -337,6 +341,14 @@ update action model =
                     of
                         Just newJobQueue ->
                             ( { model | jobQueue = newJobQueue }, Cmd.none )
+
+                        Nothing ->
+                            ( model, Cmd.none )
+
+                Just ( PauseActivity, ts_ ) ->
+                    case List.Extra.uncons model.jobQueue of
+                        Just ( job, restQueue ) ->
+                            ( { model | jobQueue = { job | history = newHistory } :: restQueue }, Cmd.none )
 
                         Nothing ->
                             ( model, Cmd.none )
@@ -848,6 +860,9 @@ metricsConfig =
 
                     StopActivity ->
                         Json.Encode.string "ActiveJob Yield"
+
+                    PauseActivity ->
+                        Json.Encode.string "ActiveJob Pause"
             )
         , dataDecoder =
             Json.Decode.string
@@ -859,6 +874,9 @@ metricsConfig =
 
                             "ActiveJob Yield" ->
                                 Json.Decode.succeed (StopActivity)
+
+                            "ActiveJob Pause" ->
+                                Json.Decode.succeed (PauseActivity)
 
                             _ ->
                                 Json.Decode.fail ("Cannot decode " ++ data)
@@ -900,6 +918,9 @@ main =
 
                             ( Just job, ActiveJob Yield ) ->
                                 Metrics.track metricsConfig job.history (StopActivity)
+
+                            ( Just job, ActiveJob Pause ) ->
+                                Metrics.track metricsConfig job.history (PauseActivity)
 
                             _ ->
                                 Cmd.none
