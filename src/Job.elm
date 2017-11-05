@@ -24,9 +24,11 @@ import List.Extra
 import Dom
 import Task
 import Window
+import Update.Extra
 import EditableElement
 import Utils
 import Helpcard
+import DirtyHtml.Textarea
 
 
 -- MODEL
@@ -182,6 +184,8 @@ type Msg
     | TitleWidget ( Cmd Msg, EditableElement.State )
     | Worklog WorklogMsg
     | Focus FocusMsg
+    | WorklogEntryTextareaMsg DirtyHtml.Textarea.Msg
+    | WorklogInputTextareaMsg DirtyHtml.Textarea.Msg
 
 
 type WorklogMsg
@@ -231,6 +235,7 @@ update msg model =
 
         Worklog Add ->
             ( { model | worklog = initWorklogEntry :: model.worklog }, Cmd.none )
+                |> Update.Extra.andThen update focusWorklogForm
 
         Worklog (Save index worklogEntryContent) ->
             ( { model | worklog = editWorklogEntryContent index worklogEntryContent model.worklog }, Cmd.none )
@@ -240,6 +245,12 @@ update msg model =
 
         Worklog (WorklogEntryWidget index ( cmd, state )) ->
             ( { model | worklog = updateWorklogEntryWidgetState index state model.worklog }, cmd )
+
+        WorklogEntryTextareaMsg dirtyTextareaMsg ->
+            ( model, Cmd.map WorklogEntryTextareaMsg (DirtyHtml.Textarea.update dirtyTextareaMsg) )
+
+        WorklogInputTextareaMsg dirtyTextareaMsg ->
+            ( model, Cmd.map WorklogInputTextareaMsg (DirtyHtml.Textarea.update dirtyTextareaMsg) )
 
 
 {-| Focus the input field to enter a new worklog entry
@@ -344,9 +355,9 @@ viewWorklog windowSize editable model =
                             EditableElement.EditMode attributes ->
                                 li
                                     [ class "collection-item worklog-entry" ]
-                                    [ textarea
-                                        (attribute "onfocus" "$(this).trigger('autoresize');"
-                                            :: rows 1
+                                    [ DirtyHtml.Textarea.view
+                                        (DirtyHtml.Textarea.config { toMsg = WorklogEntryTextareaMsg })
+                                        (rows 1
                                             :: class "worklog-entry-edit materialize-textarea"
                                             :: value worklogEntryContent
                                             :: onInput (Save indexCountingUnsavedEntry >> Worklog)
@@ -387,7 +398,8 @@ viewWorklogForm : Window.Size -> String -> Model -> Html Msg
 viewWorklogForm windowSize buttonText { worklog } =
     div [ class "row" ]
         [ div [ class "input-field col s8 m10" ]
-            [ textarea
+            [ DirtyHtml.Textarea.view
+                (DirtyHtml.Textarea.config { toMsg = WorklogInputTextareaMsg })
                 ([ id "input-worklog"
                  , class "materialize-textarea"
                  , rows 1

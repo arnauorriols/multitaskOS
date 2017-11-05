@@ -111,6 +111,9 @@ document.addEventListener('DOMContentLoaded', function() {
 					database.ref('users-data/' + user.uid).set(model);
 				}
     });
+	  multitaskos.ports.resizeFocused.subscribe(function () {
+        $(document.activeElement).trigger('autoresize');
+    });
 
 		// Register dummy serviceWorker for install to home screen banner in Android to appear
 		if (navigator.serviceWorker) {
