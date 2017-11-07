@@ -9,6 +9,7 @@ module Job
         , update
         , focusWorklogForm
         , triggerTitleEditMode
+        , isEditingWorklogEntry
         , viewTitle
         , viewWorklog
         , viewWorklogForm
@@ -183,7 +184,8 @@ type Msg
     | EditTitle String
     | TitleWidget ( Cmd Msg, EditableElement.State )
     | Worklog WorklogMsg
-    | Focus FocusMsg
+    | Focus DomActionMsg
+    | Blur DomActionMsg
     | WorklogEntryTextareaMsg DirtyHtml.Textarea.Msg
     | WorklogInputTextareaMsg DirtyHtml.Textarea.Msg
 
@@ -195,7 +197,7 @@ type WorklogMsg
     | WorklogEntryWidget Int ( Cmd Msg, EditableElement.State )
 
 
-type FocusMsg
+type DomActionMsg
     = Attempt String
     | Result (Result Dom.Error ())
 
@@ -221,6 +223,25 @@ update msg model =
                     let
                         _ =
                             Debug.log "Element was not found, thus could not be focused" id
+                    in
+                        ( model, Cmd.none )
+
+                Ok () ->
+                    ( model, Cmd.none )
+
+        Blur (Attempt elementId) ->
+            let
+                blurTask =
+                    Dom.blur elementId
+            in
+                ( model, Task.attempt (Result >> Blur) blurTask )
+
+        Blur (Result result) ->
+            case result of
+                Err (Dom.NotFound id) ->
+                    let
+                        _ =
+                            Debug.log "Element was not found, thus could not be blurred" id
                     in
                         ( model, Cmd.none )
 
@@ -324,6 +345,21 @@ viewWorklog windowSize editable model =
                         ]
                         [ text "delete" ]
 
+                confirmEditIcon worklogEntryIndex =
+                    i
+                        [ id "confirm-worklog-entry-edit-icon"
+                        , class "secondary-content material-icons"
+                        , onWithOptions
+                            -- This is a hack to disable the automatic blur of the EditableElement
+                            "mousedown"
+                            { stopPropagation = False, preventDefault = True }
+                            (Json.Decode.succeed NoOp)
+
+                        -- Explicitly blur the EditableElement on click
+                        , onClick (Blur (Attempt EditableElement.editTagId))
+                        ]
+                        [ text "check" ]
+
                 renderWorklogEntry : Int -> WorklogEntry -> Html Msg
                 renderWorklogEntry index ( worklogEntryContent, worklogEntryWidgetState ) =
                     let
@@ -364,6 +400,7 @@ viewWorklog windowSize editable model =
                                             :: attributes
                                         )
                                         []
+                                    , confirmEditIcon indexCountingUnsavedEntry
                                     ]
             in
                 List.indexedMap renderWorklogEntry worklogs
@@ -392,12 +429,30 @@ viewEmptyJobHelpCard =
         ]
 
 
+isEditingWorklogEntry : Model -> Bool
+isEditingWorklogEntry { worklog } =
+    List.foldl
+        (\( entry, widgetState ) editing ->
+            case ( editing, EditableElement.isInEditMode widgetState ) of
+                ( True, _ ) ->
+                    True
+
+                ( False, True ) ->
+                    True
+
+                ( False, False ) ->
+                    False
+        )
+        False
+        worklog
+
+
 {-| Present the form to add new entried to the job's journal
 -}
 viewWorklogForm : Window.Size -> String -> Model -> Html Msg
 viewWorklogForm windowSize buttonText { worklog } =
     div [ class "row" ]
-        [ div [ class "input-field col s8 m10" ]
+        [ div [ class "input-field col s9 m10" ]
             [ DirtyHtml.Textarea.view
                 (DirtyHtml.Textarea.config { toMsg = WorklogInputTextareaMsg })
                 ([ id "input-worklog"
@@ -422,7 +477,7 @@ viewWorklogForm windowSize buttonText { worklog } =
                     )
                 ]
             ]
-        , div [ class "input-field col s4 m2" ]
+        , div [ class "input-field col s3 m2" ]
             [ button
                 [ class "right waves-effect waves-light btn"
                 , type_ "submit"

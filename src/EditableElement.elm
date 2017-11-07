@@ -5,7 +5,9 @@ module EditableElement
         , Mode(ReadMode, EditMode)
         , initialState
         , triggerEditMode
+        , editTagId
         , getMode
+        , isInEditMode
         , textReadMode
         , markdownReadMode
         , defaultPlaceholder
@@ -105,6 +107,16 @@ getMode (Config { stateMsg, editEnabled, submitOnEnter }) state =
                     [ ( "cursor", "default" )
                     ]
                 ]
+
+
+isInEditMode : State -> Bool
+isInEditMode state =
+    case state of
+        Editing _ ->
+            True
+
+        Viewing ->
+            False
 
 
 textReadMode : String -> Html.Html msg

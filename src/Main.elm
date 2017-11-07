@@ -513,9 +513,9 @@ view model =
             (case model.viewType of
                 WorklogView ->
                     [ viewNextScheduledJobTitle model
-                    , viewContextSwitchingControls model
+                    , viewContextSwitchingControls model |> ifNotEditingWorklogEntry model
                     , viewNextScheduledJobWorklog model
-                    , viewActiveJobWorklogForm model
+                    , viewActiveJobWorklogForm model |> ifNotEditingWorklogEntry model
                     , viewHotkeyHintsToggle model
                     ]
 
@@ -527,6 +527,19 @@ view model =
                     ]
             )
         ]
+
+
+ifNotEditingWorklogEntry : Model -> Html msg -> Html msg
+ifNotEditingWorklogEntry model view =
+    case List.head model.jobQueue of
+        Just job ->
+            if Job.isEditingWorklogEntry job.data then
+                Html.text ""
+            else
+                view
+
+        Nothing ->
+            view
 
 
 viewPort : List (Html Msg) -> Html Msg
