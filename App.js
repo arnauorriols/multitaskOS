@@ -9233,6 +9233,14 @@ var _arnauorriols$multitaskos$EditableElement$markdownReadMode = function (conte
 var _arnauorriols$multitaskos$EditableElement$textReadMode = function (content) {
 	return (!_elm_lang$core$String$isEmpty(content)) ? _elm_lang$html$Html$text(content) : _arnauorriols$multitaskos$EditableElement$defaultPlaceholder;
 };
+var _arnauorriols$multitaskos$EditableElement$isInEditMode = function (state) {
+	var _p0 = state;
+	if (_p0.ctor === 'Editing') {
+		return true;
+	} else {
+		return false;
+	}
+};
 var _arnauorriols$multitaskos$EditableElement$editTagId = 'editable-element-being-edited';
 var _arnauorriols$multitaskos$EditableElement$EditMode = function (a) {
 	return {ctor: 'EditMode', _0: a};
@@ -9243,10 +9251,10 @@ var _arnauorriols$multitaskos$EditableElement$ReadMode = function (a) {
 var _arnauorriols$multitaskos$EditableElement$Config = function (a) {
 	return {ctor: 'Config', _0: a};
 };
-var _arnauorriols$multitaskos$EditableElement$config = function (_p0) {
-	var _p1 = _p0;
+var _arnauorriols$multitaskos$EditableElement$config = function (_p1) {
+	var _p2 = _p1;
 	return _arnauorriols$multitaskos$EditableElement$Config(
-		{stateMsg: _p1.stateMsg, editEnabled: _p1.editEnabled, submitOnEnter: _p1.submitOnEnter});
+		{stateMsg: _p2.stateMsg, editEnabled: _p2.editEnabled, submitOnEnter: _p2.submitOnEnter});
 };
 var _arnauorriols$multitaskos$EditableElement$Editing = function (a) {
 	return {ctor: 'Editing', _0: a};
@@ -9262,7 +9270,7 @@ var _arnauorriols$multitaskos$EditableElement$triggerEditMode = function (stateM
 		function (editTagId, stateMsg) {
 			return A2(
 				_elm_lang$core$Task$attempt,
-				function (_p2) {
+				function (_p3) {
 					return stateMsg(
 						A2(
 							F2(
@@ -9271,7 +9279,7 @@ var _arnauorriols$multitaskos$EditableElement$triggerEditMode = function (stateM
 								}),
 							_elm_lang$core$Platform_Cmd$none,
 							_arnauorriols$multitaskos$EditableElement$Editing(
-								_arnauorriols$multitaskos$EditableElement$Focused(_p2))));
+								_arnauorriols$multitaskos$EditableElement$Focused(_p3))));
 				},
 				_elm_lang$dom$Dom$focus(editTagId));
 		});
@@ -9283,12 +9291,12 @@ var _arnauorriols$multitaskos$EditableElement$triggerEditMode = function (stateM
 		});
 };
 var _arnauorriols$multitaskos$EditableElement$getMode = F2(
-	function (_p3, state) {
-		var _p4 = _p3;
-		var _p6 = _p4._0.stateMsg;
-		var _p5 = {ctor: '_Tuple2', _0: _p4._0.editEnabled, _1: state};
-		if (_p5._0 === true) {
-			if (_p5._1.ctor === 'Editing') {
+	function (_p4, state) {
+		var _p5 = _p4;
+		var _p7 = _p5._0.stateMsg;
+		var _p6 = {ctor: '_Tuple2', _0: _p5._0.editEnabled, _1: state};
+		if (_p6._0 === true) {
+			if (_p6._1.ctor === 'Editing') {
 				return _arnauorriols$multitaskos$EditableElement$EditMode(
 					A2(
 						_elm_lang$core$Basics_ops['++'],
@@ -9298,18 +9306,18 @@ var _arnauorriols$multitaskos$EditableElement$getMode = F2(
 							_1: {
 								ctor: '::',
 								_0: _elm_lang$html$Html_Events$onBlur(
-									_p6(
+									_p7(
 										{ctor: '_Tuple2', _0: _elm_lang$core$Platform_Cmd$none, _1: _arnauorriols$multitaskos$EditableElement$Viewing})),
 								_1: {ctor: '[]'}
 							}
 						},
-						_p4._0.submitOnEnter ? {
+						_p5._0.submitOnEnter ? {
 							ctor: '::',
 							_0: A2(
 								_arnauorriols$multitaskos$Utils$onEnter,
-								_p6(
+								_p7(
 									{ctor: '_Tuple2', _0: _elm_lang$core$Platform_Cmd$none, _1: state}),
-								_p6(
+								_p7(
 									{ctor: '_Tuple2', _0: _elm_lang$core$Platform_Cmd$none, _1: _arnauorriols$multitaskos$EditableElement$Viewing})),
 							_1: {ctor: '[]'}
 						} : {ctor: '[]'}));
@@ -9318,7 +9326,7 @@ var _arnauorriols$multitaskos$EditableElement$getMode = F2(
 					{
 						ctor: '::',
 						_0: _elm_lang$html$Html_Events$onClick(
-							_arnauorriols$multitaskos$EditableElement$triggerEditMode(_p6)),
+							_arnauorriols$multitaskos$EditableElement$triggerEditMode(_p7)),
 						_1: {
 							ctor: '::',
 							_0: _elm_lang$html$Html_Attributes$style(
@@ -16695,6 +16703,31 @@ var _ccapndave$elm_update_extra$Update_Extra$sequence = F3(
 		return A3(_elm_lang$core$List$foldl, foldUpdate, init, msgs);
 	});
 
+var _arnauorriols$multitaskos$Job$isEditingWorklogEntry = function (_p0) {
+	var _p1 = _p0;
+	return A3(
+		_elm_lang$core$List$foldl,
+		F2(
+			function (_p2, editing) {
+				var _p3 = _p2;
+				var _p4 = {
+					ctor: '_Tuple2',
+					_0: editing,
+					_1: _arnauorriols$multitaskos$EditableElement$isInEditMode(_p3._1)
+				};
+				if (_p4._0 === true) {
+					return true;
+				} else {
+					if (_p4._1 === true) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+			}),
+		false,
+		_p1.worklog);
+};
 var _arnauorriols$multitaskos$Job$viewEmptyJobHelpCard = _arnauorriols$multitaskos$Helpcard$view(
 	{
 		ctor: '::',
@@ -16753,9 +16786,9 @@ var _arnauorriols$multitaskos$Job$viewEmptyJobHelpCard = _arnauorriols$multitask
 	});
 var _arnauorriols$multitaskos$Job$updateWorklogEntry = F3(
 	function (index, worklogEntry, worklog) {
-		var _p0 = A3(_elm_community$list_extra$List_Extra$setAt, index, worklogEntry, worklog);
-		if (_p0.ctor === 'Just') {
-			return _p0._0;
+		var _p5 = A3(_elm_community$list_extra$List_Extra$setAt, index, worklogEntry, worklog);
+		if (_p5.ctor === 'Just') {
+			return _p5._0;
 		} else {
 			return {ctor: '::', _0: worklogEntry, _1: worklog};
 		}
@@ -16763,9 +16796,9 @@ var _arnauorriols$multitaskos$Job$updateWorklogEntry = F3(
 var _arnauorriols$multitaskos$Job$editWorklogEntryContent = F3(
 	function (index, worklogEntryContent, worklog) {
 		var worklogEntryWidgetState = function () {
-			var _p1 = A2(_elm_community$list_extra$List_Extra$getAt, index, worklog);
-			if (_p1.ctor === 'Just') {
-				return _elm_lang$core$Tuple$second(_p1._0);
+			var _p6 = A2(_elm_community$list_extra$List_Extra$getAt, index, worklog);
+			if (_p6.ctor === 'Just') {
+				return _elm_lang$core$Tuple$second(_p6._0);
 			} else {
 				return _arnauorriols$multitaskos$EditableElement$initialState;
 			}
@@ -16776,9 +16809,9 @@ var _arnauorriols$multitaskos$Job$editWorklogEntryContent = F3(
 var _arnauorriols$multitaskos$Job$updateWorklogEntryWidgetState = F3(
 	function (index, worklogEntryWidgetState, worklog) {
 		var worklogEntryContent = function () {
-			var _p2 = A2(_elm_community$list_extra$List_Extra$getAt, index, worklog);
-			if (_p2.ctor === 'Just') {
-				return _elm_lang$core$Tuple$first(_p2._0);
+			var _p7 = A2(_elm_community$list_extra$List_Extra$getAt, index, worklog);
+			if (_p7.ctor === 'Just') {
+				return _elm_lang$core$Tuple$first(_p7._0);
 			} else {
 				return '';
 			}
@@ -16787,18 +16820,18 @@ var _arnauorriols$multitaskos$Job$updateWorklogEntryWidgetState = F3(
 		return A3(_arnauorriols$multitaskos$Job$updateWorklogEntry, index, worklogEntry, worklog);
 	});
 var _arnauorriols$multitaskos$Job$savedWorklog = function (worklog) {
-	var _p3 = _elm_lang$core$List$tail(worklog);
-	if (_p3.ctor === 'Just') {
-		return _p3._0;
+	var _p8 = _elm_lang$core$List$tail(worklog);
+	if (_p8.ctor === 'Just') {
+		return _p8._0;
 	} else {
 		return {ctor: '[]'};
 	}
 };
 var _arnauorriols$multitaskos$Job$initWorklogEntry = {ctor: '_Tuple2', _0: '', _1: _arnauorriols$multitaskos$EditableElement$initialState};
 var _arnauorriols$multitaskos$Job$unsavedWorklogEntry = function (worklog) {
-	var _p4 = _elm_lang$core$List$head(worklog);
-	if (_p4.ctor === 'Just') {
-		return _p4._0;
+	var _p9 = _elm_lang$core$List$head(worklog);
+	if (_p9.ctor === 'Just') {
+		return _p9._0;
 	} else {
 		return _arnauorriols$multitaskos$Job$initWorklogEntry;
 	}
@@ -16824,9 +16857,9 @@ var _arnauorriols$multitaskos$Job$encode = function (model) {
 					_1: _elm_lang$core$Json_Encode$list(
 						A2(
 							_elm_lang$core$List$map,
-							function (_p5) {
+							function (_p10) {
 								return _elm_lang$core$Json_Encode$string(
-									_elm_lang$core$Tuple$first(_p5));
+									_elm_lang$core$Tuple$first(_p10));
 							},
 							model.worklog))
 				},
@@ -16862,6 +16895,9 @@ var _arnauorriols$multitaskos$Job$WorklogInputTextareaMsg = function (a) {
 var _arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg = function (a) {
 	return {ctor: 'WorklogEntryTextareaMsg', _0: a};
 };
+var _arnauorriols$multitaskos$Job$Blur = function (a) {
+	return {ctor: 'Blur', _0: a};
+};
 var _arnauorriols$multitaskos$Job$Focus = function (a) {
 	return {ctor: 'Focus', _0: a};
 };
@@ -16887,13 +16923,13 @@ var _arnauorriols$multitaskos$Job$viewTitle = function (model) {
 			_1: {ctor: '[]'}
 		},
 		function () {
-			var _p6 = readOrEditTag;
-			if (_p6.ctor === 'ReadMode') {
+			var _p11 = readOrEditTag;
+			if (_p11.ctor === 'ReadMode') {
 				return {
 					ctor: '::',
 					_0: A2(
 						_elm_lang$html$Html$span,
-						_p6._0,
+						_p11._0,
 						{
 							ctor: '::',
 							_0: _arnauorriols$multitaskos$EditableElement$textReadMode(model.title),
@@ -16918,7 +16954,7 @@ var _arnauorriols$multitaskos$Job$viewTitle = function (model) {
 									_1: {
 										ctor: '::',
 										_0: _elm_lang$html$Html_Events$onInput(_arnauorriols$multitaskos$Job$EditTitle),
-										_1: _p6._0
+										_1: _p11._0
 									}
 								}
 							}
@@ -16941,130 +16977,10 @@ var _arnauorriols$multitaskos$Job$Save = F2(
 	function (a, b) {
 		return {ctor: 'Save', _0: a, _1: b};
 	});
-var _arnauorriols$multitaskos$Job$viewWorklog = F3(
-	function (windowSize, editable, model) {
-		var _p7 = _arnauorriols$multitaskos$Job$savedWorklog(model.worklog);
-		if (_p7.ctor === '[]') {
-			return _arnauorriols$multitaskos$Job$viewEmptyJobHelpCard;
-		} else {
-			var deleteIcon = function (worklogEntryIndex) {
-				return A2(
-					_elm_lang$html$Html$i,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$id('delete-worklog-entry-icon'),
-						_1: {
-							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('secondary-content material-icons'),
-							_1: {
-								ctor: '::',
-								_0: A3(
-									_elm_lang$html$Html_Events$onWithOptions,
-									'click',
-									{stopPropagation: true, preventDefault: false},
-									_elm_lang$core$Json_Decode$succeed(
-										_arnauorriols$multitaskos$Job$Worklog(
-											_arnauorriols$multitaskos$Job$Delete(worklogEntryIndex)))),
-								_1: {ctor: '[]'}
-							}
-						}
-					},
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html$text('delete'),
-						_1: {ctor: '[]'}
-					});
-			};
-			var renderWorklogEntry = F2(
-				function (index, _p8) {
-					var _p9 = _p8;
-					var _p13 = _p9._0;
-					var indexCountingUnsavedEntry = index + 1;
-					var config = _arnauorriols$multitaskos$EditableElement$config(
-						{
-							stateMsg: function (_p10) {
-								return _arnauorriols$multitaskos$Job$Worklog(
-									A2(_arnauorriols$multitaskos$Job$WorklogEntryWidget, indexCountingUnsavedEntry, _p10));
-							},
-							editEnabled: editable,
-							submitOnEnter: !_arnauorriols$multitaskos$Utils$isSmallScreen(windowSize)
-						});
-					var _p11 = A2(_arnauorriols$multitaskos$EditableElement$getMode, config, _p9._1);
-					if (_p11.ctor === 'ReadMode') {
-						return A2(
-							_elm_lang$html$Html$li,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$class('collection-item worklog-entry'),
-								_1: _p11._0
-							},
-							editable ? {
-								ctor: '::',
-								_0: _arnauorriols$multitaskos$EditableElement$markdownReadMode(_p13),
-								_1: {
-									ctor: '::',
-									_0: deleteIcon(indexCountingUnsavedEntry),
-									_1: {ctor: '[]'}
-								}
-							} : {
-								ctor: '::',
-								_0: _arnauorriols$multitaskos$EditableElement$markdownReadMode(_p13),
-								_1: {ctor: '[]'}
-							});
-					} else {
-						return A2(
-							_elm_lang$html$Html$li,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$class('collection-item worklog-entry'),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: A3(
-									_arnauorriols$multitaskos$DirtyHtml_Textarea$view,
-									_arnauorriols$multitaskos$DirtyHtml_Textarea$config(
-										{toMsg: _arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg}),
-									{
-										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$rows(1),
-										_1: {
-											ctor: '::',
-											_0: _elm_lang$html$Html_Attributes$class('worklog-entry-edit materialize-textarea'),
-											_1: {
-												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$value(_p13),
-												_1: {
-													ctor: '::',
-													_0: _elm_lang$html$Html_Events$onInput(
-														function (_p12) {
-															return _arnauorriols$multitaskos$Job$Worklog(
-																A2(_arnauorriols$multitaskos$Job$Save, indexCountingUnsavedEntry, _p12));
-														}),
-													_1: _p11._0
-												}
-											}
-										}
-									},
-									{ctor: '[]'}),
-								_1: {ctor: '[]'}
-							});
-					}
-				});
-			return A2(
-				_elm_lang$html$Html$ul,
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$class('grey-text collection with-header flex-scrollable z-depth-1'),
-					_1: {ctor: '[]'}
-				},
-				A2(_elm_lang$core$List$indexedMap, renderWorklogEntry, _p7));
-		}
-	});
 var _arnauorriols$multitaskos$Job$Add = {ctor: 'Add'};
 var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
-	function (windowSize, buttonText, _p14) {
-		var _p15 = _p14;
+	function (windowSize, buttonText, _p12) {
+		var _p13 = _p12;
 		return A2(
 			_elm_lang$html$Html$div,
 			{
@@ -17078,7 +16994,7 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 					_elm_lang$html$Html$div,
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$class('input-field col s8 m10'),
+						_0: _elm_lang$html$Html_Attributes$class('input-field col s9 m10'),
 						_1: {ctor: '[]'}
 					},
 					{
@@ -17102,13 +17018,13 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 												ctor: '::',
 												_0: _elm_lang$html$Html_Attributes$value(
 													_elm_lang$core$Tuple$first(
-														_arnauorriols$multitaskos$Job$unsavedWorklogEntry(_p15.worklog))),
+														_arnauorriols$multitaskos$Job$unsavedWorklogEntry(_p13.worklog))),
 												_1: {
 													ctor: '::',
 													_0: _elm_lang$html$Html_Events$onInput(
-														function (_p16) {
+														function (_p14) {
 															return _arnauorriols$multitaskos$Job$Worklog(
-																A2(_arnauorriols$multitaskos$Job$Save, 0, _p16));
+																A2(_arnauorriols$multitaskos$Job$Save, 0, _p14));
 														}),
 													_1: {ctor: '[]'}
 												}
@@ -17149,7 +17065,7 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 						_elm_lang$html$Html$div,
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('input-field col s4 m2'),
+							_0: _elm_lang$html$Html_Attributes$class('input-field col s3 m2'),
 							_1: {ctor: '[]'}
 						},
 						{
@@ -17191,28 +17107,51 @@ var _arnauorriols$multitaskos$Job$focusWorklogForm = _arnauorriols$multitaskos$J
 	_arnauorriols$multitaskos$Job$Attempt('input-worklog'));
 var _arnauorriols$multitaskos$Job$update = F2(
 	function (msg, model) {
-		var _p17 = msg;
-		switch (_p17.ctor) {
+		var _p15 = msg;
+		switch (_p15.ctor) {
 			case 'NoOp':
 				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'Focus':
-				if (_p17._0.ctor === 'Attempt') {
-					var focusTask = _elm_lang$dom$Dom$focus(_p17._0._0);
+				if (_p15._0.ctor === 'Attempt') {
+					var focusTask = _elm_lang$dom$Dom$focus(_p15._0._0);
 					return {
 						ctor: '_Tuple2',
 						_0: model,
 						_1: A2(
 							_elm_lang$core$Task$attempt,
-							function (_p18) {
+							function (_p16) {
 								return _arnauorriols$multitaskos$Job$Focus(
-									_arnauorriols$multitaskos$Job$Result(_p18));
+									_arnauorriols$multitaskos$Job$Result(_p16));
 							},
 							focusTask)
 					};
 				} else {
-					var _p19 = _p17._0._0;
-					if (_p19.ctor === 'Err') {
-						var _p20 = A2(_elm_lang$core$Debug$log, 'Element was not found, thus could not be focused', _p19._0._0);
+					var _p17 = _p15._0._0;
+					if (_p17.ctor === 'Err') {
+						var _p18 = A2(_elm_lang$core$Debug$log, 'Element was not found, thus could not be focused', _p17._0._0);
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					} else {
+						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+					}
+				}
+			case 'Blur':
+				if (_p15._0.ctor === 'Attempt') {
+					var blurTask = _elm_lang$dom$Dom$blur(_p15._0._0);
+					return {
+						ctor: '_Tuple2',
+						_0: model,
+						_1: A2(
+							_elm_lang$core$Task$attempt,
+							function (_p19) {
+								return _arnauorriols$multitaskos$Job$Blur(
+									_arnauorriols$multitaskos$Job$Result(_p19));
+							},
+							blurTask)
+					};
+				} else {
+					var _p20 = _p15._0._0;
+					if (_p20.ctor === 'Err') {
+						var _p21 = A2(_elm_lang$core$Debug$log, 'Element was not found, thus could not be blurred', _p20._0._0);
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 					} else {
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
@@ -17223,7 +17162,7 @@ var _arnauorriols$multitaskos$Job$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{title: _p17._0}),
+						{title: _p15._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'TitleWidget':
@@ -17231,11 +17170,11 @@ var _arnauorriols$multitaskos$Job$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{titleWidgetState: _p17._0._1}),
-					_1: _p17._0._0
+						{titleWidgetState: _p15._0._1}),
+					_1: _p15._0._0
 				};
 			case 'Worklog':
-				switch (_p17._0.ctor) {
+				switch (_p15._0.ctor) {
 					case 'Add':
 						return A3(
 							_ccapndave$elm_update_extra$Update_Extra$andThen,
@@ -17256,7 +17195,7 @@ var _arnauorriols$multitaskos$Job$update = F2(
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
 								{
-									worklog: A3(_arnauorriols$multitaskos$Job$editWorklogEntryContent, _p17._0._0, _p17._0._1, model.worklog)
+									worklog: A3(_arnauorriols$multitaskos$Job$editWorklogEntryContent, _p15._0._0, _p15._0._1, model.worklog)
 								}),
 							_1: _elm_lang$core$Platform_Cmd$none
 						};
@@ -17266,7 +17205,7 @@ var _arnauorriols$multitaskos$Job$update = F2(
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
 								{
-									worklog: A2(_elm_community$list_extra$List_Extra$removeAt, _p17._0._0, model.worklog)
+									worklog: A2(_elm_community$list_extra$List_Extra$removeAt, _p15._0._0, model.worklog)
 								}),
 							_1: _elm_lang$core$Platform_Cmd$none
 						};
@@ -17276,9 +17215,9 @@ var _arnauorriols$multitaskos$Job$update = F2(
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
 								{
-									worklog: A3(_arnauorriols$multitaskos$Job$updateWorklogEntryWidgetState, _p17._0._0, _p17._0._1._1, model.worklog)
+									worklog: A3(_arnauorriols$multitaskos$Job$updateWorklogEntryWidgetState, _p15._0._0, _p15._0._1._1, model.worklog)
 								}),
-							_1: _p17._0._1._0
+							_1: _p15._0._1._0
 						};
 				}
 			case 'WorklogEntryTextareaMsg':
@@ -17288,7 +17227,7 @@ var _arnauorriols$multitaskos$Job$update = F2(
 					_1: A2(
 						_elm_lang$core$Platform_Cmd$map,
 						_arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg,
-						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p17._0))
+						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p15._0))
 				};
 			default:
 				return {
@@ -17297,8 +17236,164 @@ var _arnauorriols$multitaskos$Job$update = F2(
 					_1: A2(
 						_elm_lang$core$Platform_Cmd$map,
 						_arnauorriols$multitaskos$Job$WorklogInputTextareaMsg,
-						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p17._0))
+						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p15._0))
 				};
+		}
+	});
+var _arnauorriols$multitaskos$Job$viewWorklog = F3(
+	function (windowSize, editable, model) {
+		var _p22 = _arnauorriols$multitaskos$Job$savedWorklog(model.worklog);
+		if (_p22.ctor === '[]') {
+			return _arnauorriols$multitaskos$Job$viewEmptyJobHelpCard;
+		} else {
+			var confirmEditIcon = function (worklogEntryIndex) {
+				return A2(
+					_elm_lang$html$Html$i,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$id('confirm-worklog-entry-edit-icon'),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$class('secondary-content material-icons'),
+							_1: {
+								ctor: '::',
+								_0: A3(
+									_elm_lang$html$Html_Events$onWithOptions,
+									'mousedown',
+									{stopPropagation: false, preventDefault: true},
+									_elm_lang$core$Json_Decode$succeed(_arnauorriols$multitaskos$Job$NoOp)),
+								_1: {
+									ctor: '::',
+									_0: _elm_lang$html$Html_Events$onClick(
+										_arnauorriols$multitaskos$Job$Blur(
+											_arnauorriols$multitaskos$Job$Attempt(_arnauorriols$multitaskos$EditableElement$editTagId))),
+									_1: {ctor: '[]'}
+								}
+							}
+						}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('check'),
+						_1: {ctor: '[]'}
+					});
+			};
+			var deleteIcon = function (worklogEntryIndex) {
+				return A2(
+					_elm_lang$html$Html$i,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$id('delete-worklog-entry-icon'),
+						_1: {
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$class('secondary-content material-icons'),
+							_1: {
+								ctor: '::',
+								_0: A3(
+									_elm_lang$html$Html_Events$onWithOptions,
+									'click',
+									{stopPropagation: true, preventDefault: false},
+									_elm_lang$core$Json_Decode$succeed(
+										_arnauorriols$multitaskos$Job$Worklog(
+											_arnauorriols$multitaskos$Job$Delete(worklogEntryIndex)))),
+								_1: {ctor: '[]'}
+							}
+						}
+					},
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html$text('delete'),
+						_1: {ctor: '[]'}
+					});
+			};
+			var renderWorklogEntry = F2(
+				function (index, _p23) {
+					var _p24 = _p23;
+					var _p28 = _p24._0;
+					var indexCountingUnsavedEntry = index + 1;
+					var config = _arnauorriols$multitaskos$EditableElement$config(
+						{
+							stateMsg: function (_p25) {
+								return _arnauorriols$multitaskos$Job$Worklog(
+									A2(_arnauorriols$multitaskos$Job$WorklogEntryWidget, indexCountingUnsavedEntry, _p25));
+							},
+							editEnabled: editable,
+							submitOnEnter: !_arnauorriols$multitaskos$Utils$isSmallScreen(windowSize)
+						});
+					var _p26 = A2(_arnauorriols$multitaskos$EditableElement$getMode, config, _p24._1);
+					if (_p26.ctor === 'ReadMode') {
+						return A2(
+							_elm_lang$html$Html$li,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$class('collection-item worklog-entry'),
+								_1: _p26._0
+							},
+							editable ? {
+								ctor: '::',
+								_0: _arnauorriols$multitaskos$EditableElement$markdownReadMode(_p28),
+								_1: {
+									ctor: '::',
+									_0: deleteIcon(indexCountingUnsavedEntry),
+									_1: {ctor: '[]'}
+								}
+							} : {
+								ctor: '::',
+								_0: _arnauorriols$multitaskos$EditableElement$markdownReadMode(_p28),
+								_1: {ctor: '[]'}
+							});
+					} else {
+						return A2(
+							_elm_lang$html$Html$li,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$class('collection-item worklog-entry'),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: A3(
+									_arnauorriols$multitaskos$DirtyHtml_Textarea$view,
+									_arnauorriols$multitaskos$DirtyHtml_Textarea$config(
+										{toMsg: _arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg}),
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$rows(1),
+										_1: {
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$class('worklog-entry-edit materialize-textarea'),
+											_1: {
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$value(_p28),
+												_1: {
+													ctor: '::',
+													_0: _elm_lang$html$Html_Events$onInput(
+														function (_p27) {
+															return _arnauorriols$multitaskos$Job$Worklog(
+																A2(_arnauorriols$multitaskos$Job$Save, indexCountingUnsavedEntry, _p27));
+														}),
+													_1: _p26._0
+												}
+											}
+										}
+									},
+									{ctor: '[]'}),
+								_1: {
+									ctor: '::',
+									_0: confirmEditIcon(indexCountingUnsavedEntry),
+									_1: {ctor: '[]'}
+								}
+							});
+					}
+				});
+			return A2(
+				_elm_lang$html$Html$ul,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$class('grey-text collection with-header flex-scrollable z-depth-1'),
+					_1: {ctor: '[]'}
+				},
+				A2(_elm_lang$core$List$indexedMap, renderWorklogEntry, _p22));
 		}
 	});
 
@@ -17517,11 +17612,20 @@ var _arnauorriols$multitaskos$Main$viewPort = function (elements) {
 			_1: {ctor: '[]'}
 		});
 };
+var _arnauorriols$multitaskos$Main$ifNotEditingWorklogEntry = F2(
+	function (model, view) {
+		var _p0 = _elm_lang$core$List$head(model.jobQueue);
+		if (_p0.ctor === 'Just') {
+			return _arnauorriols$multitaskos$Job$isEditingWorklogEntry(_p0._0.data) ? _elm_lang$html$Html$text('') : view;
+		} else {
+			return view;
+		}
+	});
 var _arnauorriols$multitaskos$Main$graphConfigStateInit = {resolutionUnit: _arnauorriols$multitaskos$Graph$Minutes, offsetAmmount: 7, offsetUnit: _arnauorriols$multitaskos$Graph$Days};
 var _arnauorriols$multitaskos$Main$hotkeyHintOrReal = F3(
 	function (hotkeyHintStatus, hotkeyHint, realText) {
-		var _p0 = hotkeyHintStatus;
-		if (_p0.ctor === 'Shown') {
+		var _p1 = hotkeyHintStatus;
+		if (_p1.ctor === 'Shown') {
 			return hotkeyHint;
 		} else {
 			return realText;
@@ -17587,10 +17691,10 @@ var _arnauorriols$multitaskos$Main$graphConfig = function (configState) {
 			ensureMax10Columns:
 			while (true) {
 				if (_elm_lang$core$Native_Utils.cmp((offsetAmmount / groupAmmount) | 0, 7) > 0) {
-					var _v1 = offsetAmmount,
-						_v2 = groupAmmount + 1;
-					offsetAmmount = _v1;
-					groupAmmount = _v2;
+					var _v2 = offsetAmmount,
+						_v3 = groupAmmount + 1;
+					offsetAmmount = _v2;
+					groupAmmount = _v3;
 					continue ensureMax10Columns;
 				} else {
 					return groupAmmount;
@@ -17607,31 +17711,31 @@ var _arnauorriols$multitaskos$Main$graphConfig = function (configState) {
 				A2(ensureMax10Columns, configState.offsetAmmount, 1)),
 			resolution: _arnauorriols$multitaskos$Graph$resolution(configState.resolutionUnit),
 			reducer: F3(
-				function (_p2, _p1, accumulated) {
-					var _p3 = _p2;
-					var _p7 = _p3._0;
-					var _p4 = _p1;
-					var _p6 = _p4._1;
-					var _p5 = _p4._0;
-					switch (_p5.ctor) {
+				function (_p3, _p2, accumulated) {
+					var _p4 = _p3;
+					var _p8 = _p4._0;
+					var _p5 = _p2;
+					var _p7 = _p5._1;
+					var _p6 = _p5._0;
+					switch (_p6.ctor) {
 						case 'StartActivity':
-							return _elm_lang$core$Native_Utils.eq(accumulated, 0) ? (_p3._1 - _p6) : (accumulated - (_p6 - _p7));
+							return _elm_lang$core$Native_Utils.eq(accumulated, 0) ? (_p4._1 - _p7) : (accumulated - (_p7 - _p8));
 						case 'StopActivity':
-							return accumulated + (_p6 - _p7);
+							return accumulated + (_p7 - _p8);
 						default:
-							return accumulated + (_p6 - _p7);
+							return accumulated + (_p7 - _p8);
 					}
 				})
 		});
 };
 var _arnauorriols$multitaskos$Main$viewNextScheduledJobGraph = function (model) {
-	var _p8 = _elm_lang$core$List$head(model.jobQueue);
-	if (_p8.ctor === 'Just') {
+	var _p9 = _elm_lang$core$List$head(model.jobQueue);
+	if (_p9.ctor === 'Just') {
 		return A3(
 			_arnauorriols$multitaskos$Graph$view,
 			_arnauorriols$multitaskos$Main$graphConfig(model.graphConfig),
 			model.graphState,
-			_arnauorriols$multitaskos$Metrics$getEvents(_p8._0.history));
+			_arnauorriols$multitaskos$Metrics$getEvents(_p9._0.history));
 	} else {
 		return _elm_lang$html$Html$text('');
 	}
@@ -17639,8 +17743,8 @@ var _arnauorriols$multitaskos$Main$viewNextScheduledJobGraph = function (model) 
 var _arnauorriols$multitaskos$Main$ToggleViewType = {ctor: 'ToggleViewType'};
 var _arnauorriols$multitaskos$Main$viewViewTypeToggle = function (model) {
 	var icon = function () {
-		var _p9 = model.viewType;
-		if (_p9.ctor === 'WorklogView') {
+		var _p10 = model.viewType;
+		if (_p10.ctor === 'WorklogView') {
 			return 'assessment';
 		} else {
 			return 'assignment';
@@ -17762,9 +17866,9 @@ var _arnauorriols$multitaskos$Main$viewNextScheduledJobTitle = function (model) 
 	var viewJobTitle = function (job) {
 		return A2(
 			_elm_lang$html$Html$map,
-			function (_p10) {
+			function (_p11) {
 				return _arnauorriols$multitaskos$Main$NextJob(
-					_arnauorriols$multitaskos$Main$NextJobMsg(_p10));
+					_arnauorriols$multitaskos$Main$NextJobMsg(_p11));
 			},
 			_arnauorriols$multitaskos$Job$viewTitle(job.data));
 	};
@@ -17776,13 +17880,13 @@ var _arnauorriols$multitaskos$Main$viewNextScheduledJobTitle = function (model) 
 			_1: {ctor: '[]'}
 		},
 		function () {
-			var _p11 = {
+			var _p12 = {
 				ctor: '_Tuple2',
 				_0: model.nextJobStatus,
 				_1: _elm_lang$core$List$head(model.jobQueue)
 			};
-			if (_p11._1.ctor === 'Just') {
-				if (_p11._0.ctor === 'Queued') {
+			if (_p12._1.ctor === 'Just') {
+				if (_p12._0.ctor === 'Queued') {
 					return {
 						ctor: '::',
 						_0: A2(
@@ -17794,7 +17898,7 @@ var _arnauorriols$multitaskos$Main$viewNextScheduledJobTitle = function (model) 
 							},
 							{
 								ctor: '::',
-								_0: viewJobTitle(_p11._1._0),
+								_0: viewJobTitle(_p12._1._0),
 								_1: {ctor: '[]'}
 							}),
 						_1: {
@@ -17826,7 +17930,7 @@ var _arnauorriols$multitaskos$Main$viewNextScheduledJobTitle = function (model) 
 							},
 							{
 								ctor: '::',
-								_0: viewJobTitle(_p11._1._0),
+								_0: viewJobTitle(_p12._1._0),
 								_1: {ctor: '[]'}
 							}),
 						_1: {ctor: '[]'}
@@ -17857,19 +17961,19 @@ var _arnauorriols$multitaskos$Main$viewNextScheduledJobTitle = function (model) 
 		}());
 };
 var _arnauorriols$multitaskos$Main$viewNextScheduledJobWorklog = function (model) {
-	var _p12 = _elm_lang$core$List$head(model.jobQueue);
-	if (_p12.ctor === 'Just') {
+	var _p13 = _elm_lang$core$List$head(model.jobQueue);
+	if (_p13.ctor === 'Just') {
 		return A2(
 			_elm_lang$html$Html$map,
-			function (_p13) {
+			function (_p14) {
 				return _arnauorriols$multitaskos$Main$NextJob(
-					_arnauorriols$multitaskos$Main$NextJobMsg(_p13));
+					_arnauorriols$multitaskos$Main$NextJobMsg(_p14));
 			},
 			A3(
 				_arnauorriols$multitaskos$Job$viewWorklog,
 				model.windowSize,
 				_elm_lang$core$Native_Utils.eq(model.nextJobStatus, _arnauorriols$multitaskos$Main$Active),
-				_p12._0.data));
+				_p13._0.data));
 	} else {
 		return _arnauorriols$multitaskos$Main$viewInitialHelpCard;
 	}
@@ -17880,8 +17984,8 @@ var _arnauorriols$multitaskos$Main$MetricsMsg = function (a) {
 var _arnauorriols$multitaskos$Main$metricsConfig = _arnauorriols$multitaskos$Metrics$config(
 	{
 		dataEncoder: function (data) {
-			var _p14 = data;
-			switch (_p14.ctor) {
+			var _p15 = data;
+			switch (_p15.ctor) {
 				case 'StartActivity':
 					return _elm_lang$core$Json_Encode$string('NextJob Execute');
 				case 'StopActivity':
@@ -17893,8 +17997,8 @@ var _arnauorriols$multitaskos$Main$metricsConfig = _arnauorriols$multitaskos$Met
 		dataDecoder: A2(
 			_elm_lang$core$Json_Decode$andThen,
 			function (data) {
-				var _p15 = data;
-				switch (_p15) {
+				var _p16 = data;
+				switch (_p16) {
 					case 'NextJob Execute':
 						return _elm_lang$core$Json_Decode$succeed(_arnauorriols$multitaskos$Main$StartActivity);
 					case 'ActiveJob Yield':
@@ -17907,9 +18011,9 @@ var _arnauorriols$multitaskos$Main$metricsConfig = _arnauorriols$multitaskos$Met
 				}
 			},
 			_elm_lang$core$Json_Decode$string),
-		toMsg: function (_p16) {
+		toMsg: function (_p17) {
 			return _arnauorriols$multitaskos$Main$NextJob(
-				_arnauorriols$multitaskos$Main$MetricsMsg(_p16));
+				_arnauorriols$multitaskos$Main$MetricsMsg(_p17));
 		}
 	});
 var _arnauorriols$multitaskos$Main$encode = function (model) {
@@ -17936,8 +18040,8 @@ var _arnauorriols$multitaskos$Main$encode = function (model) {
 	var encodeStatus = function (status) {
 		return _elm_lang$core$Json_Encode$string(
 			function () {
-				var _p17 = status;
-				if (_p17.ctor === 'Active') {
+				var _p18 = status;
+				if (_p18.ctor === 'Active') {
 					return 'Active';
 				} else {
 					return 'Queued';
@@ -17975,8 +18079,8 @@ var _arnauorriols$multitaskos$Main$decoder = function () {
 				'history',
 				_arnauorriols$multitaskos$Metrics$decoder(_arnauorriols$multitaskos$Main$metricsConfig))));
 	var jobStatusDeserializer = function (jobStatus) {
-		var _p18 = jobStatus;
-		switch (_p18) {
+		var _p19 = jobStatus;
+		switch (_p19) {
 			case 'Active':
 				return _arnauorriols$multitaskos$Main$Active;
 			case 'Queued':
@@ -17988,7 +18092,7 @@ var _arnauorriols$multitaskos$Main$decoder = function () {
 						start: {line: 180, column: 13},
 						end: {line: 188, column: 90}
 					},
-					_p18)('A Job loaded from the storage has an impossible status!');
+					_p19)('A Job loaded from the storage has an impossible status!');
 		}
 	};
 	var jobStatusDecoder = A2(_elm_lang$core$Json_Decode$map, jobStatusDeserializer, _elm_lang$core$Json_Decode$string);
@@ -18005,9 +18109,9 @@ var _arnauorriols$multitaskos$Main$decoder = function () {
 		_elm_lang$core$Json_Decode$succeed(_arnauorriols$multitaskos$Main$windowSizeInit));
 }();
 var _arnauorriols$multitaskos$Main$decodeValue = function (value) {
-	var _p20 = A2(_elm_lang$core$Json_Decode$decodeValue, _arnauorriols$multitaskos$Main$decoder, value);
-	if (_p20.ctor === 'Ok') {
-		return _p20._0;
+	var _p21 = A2(_elm_lang$core$Json_Decode$decodeValue, _arnauorriols$multitaskos$Main$decoder, value);
+	if (_p21.ctor === 'Ok') {
+		return _p21._0;
 	} else {
 		return _elm_lang$core$Native_Utils.crashCase(
 			'Main',
@@ -18015,7 +18119,7 @@ var _arnauorriols$multitaskos$Main$decodeValue = function (value) {
 				start: {line: 215, column: 5},
 				end: {line: 220, column: 30}
 			},
-			_p20)(_p20._0);
+			_p21)(_p21._0);
 	}
 };
 var _arnauorriols$multitaskos$Main$Drop = {ctor: 'Drop'};
@@ -18025,20 +18129,20 @@ var _arnauorriols$multitaskos$Main$ActiveJobMsg = function (a) {
 	return {ctor: 'ActiveJobMsg', _0: a};
 };
 var _arnauorriols$multitaskos$Main$viewActiveJobWorklogForm = function (model) {
-	var _p22 = {
+	var _p23 = {
 		ctor: '_Tuple2',
 		_0: model.nextJobStatus,
 		_1: _elm_lang$core$List$head(model.jobQueue)
 	};
-	if (((_p22.ctor === '_Tuple2') && (_p22._0.ctor === 'Active')) && (_p22._1.ctor === 'Just')) {
+	if (((_p23.ctor === '_Tuple2') && (_p23._0.ctor === 'Active')) && (_p23._1.ctor === 'Just')) {
 		var submitButtonText = A3(_arnauorriols$multitaskos$Main$hotkeyHintOrReal, model.hintsStatus, 'Enter', 'Log');
 		return A2(
 			_elm_lang$html$Html$map,
-			function (_p23) {
+			function (_p24) {
 				return _arnauorriols$multitaskos$Main$ActiveJob(
-					_arnauorriols$multitaskos$Main$ActiveJobMsg(_p23));
+					_arnauorriols$multitaskos$Main$ActiveJobMsg(_p24));
 			},
-			A3(_arnauorriols$multitaskos$Job$viewWorklogForm, model.windowSize, submitButtonText, _p22._1._0.data));
+			A3(_arnauorriols$multitaskos$Job$viewWorklogForm, model.windowSize, submitButtonText, _p23._1._0.data));
 	} else {
 		return _elm_lang$html$Html$text('');
 	}
@@ -18057,8 +18161,8 @@ var _arnauorriols$multitaskos$Main$viewContextSwitchingControls = function (mode
 		A2(
 			_elm_lang$core$Basics_ops['++'],
 			function () {
-				var _p24 = model.nextJobStatus;
-				if (_p24.ctor === 'Active') {
+				var _p25 = model.nextJobStatus;
+				if (_p25.ctor === 'Active') {
 					return {
 						ctor: '::',
 						_0: A2(
@@ -18222,17 +18326,17 @@ var _arnauorriols$multitaskos$Main$subscriptions = function (model) {
 		{
 			ctor: '::',
 			_0: _arnauorriols$multitaskos$Main$syncModelFromDatabase(
-				function (_p25) {
+				function (_p26) {
 					return _arnauorriols$multitaskos$Main$SyncModel(
-						_arnauorriols$multitaskos$Main$decodeValue(_p25));
+						_arnauorriols$multitaskos$Main$decodeValue(_p26));
 				}),
 			_1: {
 				ctor: '::',
 				_0: A2(
 					_elm_lang$core$Platform_Sub$map,
-					function (_p26) {
+					function (_p27) {
 						return _arnauorriols$multitaskos$Main$Hotkey(
-							_arnauorriols$multitaskos$Main$HotkeyMsg(_p26));
+							_arnauorriols$multitaskos$Main$HotkeyMsg(_p27));
 					},
 					_arnauorriols$multitaskos$Hotkey$subscriptions),
 				_1: {
@@ -18247,15 +18351,15 @@ var _arnauorriols$multitaskos$Main$HideHints = {ctor: 'HideHints'};
 var _arnauorriols$multitaskos$Main$ShowHints = {ctor: 'ShowHints'};
 var _arnauorriols$multitaskos$Main$update = F2(
 	function (action, model) {
-		var _p27 = action;
-		switch (_p27.ctor) {
+		var _p28 = action;
+		switch (_p28.ctor) {
 			case 'NoOp':
 				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'SyncModel':
-				return {ctor: '_Tuple2', _0: _p27._0, _1: _elm_lang$core$Platform_Cmd$none};
+				return {ctor: '_Tuple2', _0: _p28._0, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'NewJob':
-				var _p28 = model.nextJobStatus;
-				if (_p28.ctor === 'Active') {
+				var _p29 = model.nextJobStatus;
+				if (_p29.ctor === 'Active') {
 					return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 				} else {
 					var newJob = {data: _arnauorriols$multitaskos$Job$init, history: _arnauorriols$multitaskos$Metrics$init};
@@ -18275,7 +18379,7 @@ var _arnauorriols$multitaskos$Main$update = F2(
 						});
 				}
 			case 'NextJob':
-				switch (_p27._0.ctor) {
+				switch (_p28._0.ctor) {
 					case 'Execute':
 						return A3(
 							_ccapndave$elm_update_extra$Update_Extra$andThen,
@@ -18290,32 +18394,6 @@ var _arnauorriols$multitaskos$Main$update = F2(
 								_1: _elm_lang$core$Platform_Cmd$none
 							});
 					case 'Skip':
-						var _p29 = {
-							ctor: '_Tuple2',
-							_0: model.nextJobStatus,
-							_1: _elm_community$list_extra$List_Extra$uncons(model.jobQueue)
-						};
-						if ((((_p29.ctor === '_Tuple2') && (_p29._0.ctor === 'Queued')) && (_p29._1.ctor === 'Just')) && (_p29._1._0.ctor === '_Tuple2')) {
-							return {
-								ctor: '_Tuple2',
-								_0: _elm_lang$core$Native_Utils.update(
-									model,
-									{
-										jobQueue: A2(
-											_elm_lang$core$Basics_ops['++'],
-											_p29._1._0._1,
-											{
-												ctor: '::',
-												_0: _p29._1._0._0,
-												_1: {ctor: '[]'}
-											})
-									}),
-								_1: _elm_lang$core$Platform_Cmd$none
-							};
-						} else {
-							return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
-						}
-					case 'Drop':
 						var _p30 = {
 							ctor: '_Tuple2',
 							_0: model.nextJobStatus,
@@ -18326,19 +18404,45 @@ var _arnauorriols$multitaskos$Main$update = F2(
 								ctor: '_Tuple2',
 								_0: _elm_lang$core$Native_Utils.update(
 									model,
-									{jobQueue: _p30._1._0._1}),
+									{
+										jobQueue: A2(
+											_elm_lang$core$Basics_ops['++'],
+											_p30._1._0._1,
+											{
+												ctor: '::',
+												_0: _p30._1._0._0,
+												_1: {ctor: '[]'}
+											})
+									}),
+								_1: _elm_lang$core$Platform_Cmd$none
+							};
+						} else {
+							return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
+						}
+					case 'Drop':
+						var _p31 = {
+							ctor: '_Tuple2',
+							_0: model.nextJobStatus,
+							_1: _elm_community$list_extra$List_Extra$uncons(model.jobQueue)
+						};
+						if ((((_p31.ctor === '_Tuple2') && (_p31._0.ctor === 'Queued')) && (_p31._1.ctor === 'Just')) && (_p31._1._0.ctor === '_Tuple2')) {
+							return {
+								ctor: '_Tuple2',
+								_0: _elm_lang$core$Native_Utils.update(
+									model,
+									{jobQueue: _p31._1._0._1}),
 								_1: _elm_lang$core$Platform_Cmd$none
 							};
 						} else {
 							return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 					case 'NextJobMsg':
-						var _p31 = _elm_community$list_extra$List_Extra$uncons(model.jobQueue);
-						if (_p31.ctor === 'Just') {
-							var _p34 = _p31._0._0;
-							var _p32 = A2(_arnauorriols$multitaskos$Job$update, _p27._0._0, _p34.data);
-							var job2Data = _p32._0;
-							var cmd = _p32._1;
+						var _p32 = _elm_community$list_extra$List_Extra$uncons(model.jobQueue);
+						if (_p32.ctor === 'Just') {
+							var _p35 = _p32._0._0;
+							var _p33 = A2(_arnauorriols$multitaskos$Job$update, _p28._0._0, _p35.data);
+							var job2Data = _p33._0;
+							var cmd = _p33._1;
 							return {
 								ctor: '_Tuple2',
 								_0: _elm_lang$core$Native_Utils.update(
@@ -18347,16 +18451,16 @@ var _arnauorriols$multitaskos$Main$update = F2(
 										jobQueue: {
 											ctor: '::',
 											_0: _elm_lang$core$Native_Utils.update(
-												_p34,
+												_p35,
 												{data: job2Data}),
-											_1: _p31._0._1
+											_1: _p32._0._1
 										}
 									}),
 								_1: A2(
 									_elm_lang$core$Platform_Cmd$map,
-									function (_p33) {
+									function (_p34) {
 										return _arnauorriols$multitaskos$Main$NextJob(
-											_arnauorriols$multitaskos$Main$NextJobMsg(_p33));
+											_arnauorriols$multitaskos$Main$NextJobMsg(_p34));
 									},
 									cmd)
 							};
@@ -18364,13 +18468,13 @@ var _arnauorriols$multitaskos$Main$update = F2(
 							return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 					default:
-						var _p39 = _p27._0._0;
-						var _p35 = _arnauorriols$multitaskos$Metrics$lastEvent(_p39);
-						if (_p35.ctor === 'Just') {
-							switch (_p35._0._0.ctor) {
+						var _p40 = _p28._0._0;
+						var _p36 = _arnauorriols$multitaskos$Metrics$lastEvent(_p40);
+						if (_p36.ctor === 'Just') {
+							switch (_p36._0._0.ctor) {
 								case 'StartActivity':
-									var _p36 = _elm_community$list_extra$List_Extra$uncons(model.jobQueue);
-									if (_p36.ctor === 'Just') {
+									var _p37 = _elm_community$list_extra$List_Extra$uncons(model.jobQueue);
+									if (_p37.ctor === 'Just') {
 										return {
 											ctor: '_Tuple2',
 											_0: _elm_lang$core$Native_Utils.update(
@@ -18379,9 +18483,9 @@ var _arnauorriols$multitaskos$Main$update = F2(
 													jobQueue: {
 														ctor: '::',
 														_0: _elm_lang$core$Native_Utils.update(
-															_p36._0._0,
-															{history: _p39}),
-														_1: _p36._0._1
+															_p37._0._0,
+															{history: _p40}),
+														_1: _p37._0._1
 													}
 												}),
 											_1: _elm_lang$core$Platform_Cmd$none
@@ -18390,29 +18494,29 @@ var _arnauorriols$multitaskos$Main$update = F2(
 										return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 									}
 								case 'StopActivity':
-									var _p37 = A3(
+									var _p38 = A3(
 										_elm_community$list_extra$List_Extra$updateAt,
 										_elm_lang$core$List$length(model.jobQueue) - 1,
 										function (job) {
 											return _elm_lang$core$Native_Utils.update(
 												job,
-												{history: _p39});
+												{history: _p40});
 										},
 										model.jobQueue);
-									if (_p37.ctor === 'Just') {
+									if (_p38.ctor === 'Just') {
 										return {
 											ctor: '_Tuple2',
 											_0: _elm_lang$core$Native_Utils.update(
 												model,
-												{jobQueue: _p37._0}),
+												{jobQueue: _p38._0}),
 											_1: _elm_lang$core$Platform_Cmd$none
 										};
 									} else {
 										return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 									}
 								default:
-									var _p38 = _elm_community$list_extra$List_Extra$uncons(model.jobQueue);
-									if (_p38.ctor === 'Just') {
+									var _p39 = _elm_community$list_extra$List_Extra$uncons(model.jobQueue);
+									if (_p39.ctor === 'Just') {
 										return {
 											ctor: '_Tuple2',
 											_0: _elm_lang$core$Native_Utils.update(
@@ -18421,9 +18525,9 @@ var _arnauorriols$multitaskos$Main$update = F2(
 													jobQueue: {
 														ctor: '::',
 														_0: _elm_lang$core$Native_Utils.update(
-															_p38._0._0,
-															{history: _p39}),
-														_1: _p38._0._1
+															_p39._0._0,
+															{history: _p40}),
+														_1: _p39._0._1
 													}
 												}),
 											_1: _elm_lang$core$Platform_Cmd$none
@@ -18437,10 +18541,10 @@ var _arnauorriols$multitaskos$Main$update = F2(
 						}
 				}
 			case 'ActiveJob':
-				switch (_p27._0.ctor) {
+				switch (_p28._0.ctor) {
 					case 'Pause':
-						var _p40 = model.nextJobStatus;
-						if (_p40.ctor === 'Active') {
+						var _p41 = model.nextJobStatus;
+						if (_p41.ctor === 'Active') {
 							return {
 								ctor: '_Tuple2',
 								_0: _elm_lang$core$Native_Utils.update(
@@ -18452,8 +18556,8 @@ var _arnauorriols$multitaskos$Main$update = F2(
 							return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 					case 'Yield':
-						var _p41 = model.nextJobStatus;
-						if (_p41.ctor === 'Active') {
+						var _p42 = model.nextJobStatus;
+						if (_p42.ctor === 'Active') {
 							return A3(
 								_ccapndave$elm_update_extra$Update_Extra$andThen,
 								_arnauorriols$multitaskos$Main$update,
@@ -18469,8 +18573,8 @@ var _arnauorriols$multitaskos$Main$update = F2(
 							return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 					case 'Finish':
-						var _p42 = model.nextJobStatus;
-						if (_p42.ctor === 'Active') {
+						var _p43 = model.nextJobStatus;
+						if (_p43.ctor === 'Active') {
 							return A3(
 								_ccapndave$elm_update_extra$Update_Extra$andThen,
 								_arnauorriols$multitaskos$Main$update,
@@ -18486,16 +18590,16 @@ var _arnauorriols$multitaskos$Main$update = F2(
 							return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 					default:
-						var _p43 = {
+						var _p44 = {
 							ctor: '_Tuple2',
 							_0: model.nextJobStatus,
 							_1: _elm_community$list_extra$List_Extra$uncons(model.jobQueue)
 						};
-						if ((((_p43.ctor === '_Tuple2') && (_p43._0.ctor === 'Active')) && (_p43._1.ctor === 'Just')) && (_p43._1._0.ctor === '_Tuple2')) {
-							var _p46 = _p43._1._0._0;
-							var _p44 = A2(_arnauorriols$multitaskos$Job$update, _p27._0._0, _p46.data);
-							var job2Data = _p44._0;
-							var cmd = _p44._1;
+						if ((((_p44.ctor === '_Tuple2') && (_p44._0.ctor === 'Active')) && (_p44._1.ctor === 'Just')) && (_p44._1._0.ctor === '_Tuple2')) {
+							var _p47 = _p44._1._0._0;
+							var _p45 = A2(_arnauorriols$multitaskos$Job$update, _p28._0._0, _p47.data);
+							var job2Data = _p45._0;
+							var cmd = _p45._1;
 							return {
 								ctor: '_Tuple2',
 								_0: _elm_lang$core$Native_Utils.update(
@@ -18504,16 +18608,16 @@ var _arnauorriols$multitaskos$Main$update = F2(
 										jobQueue: {
 											ctor: '::',
 											_0: _elm_lang$core$Native_Utils.update(
-												_p46,
+												_p47,
 												{data: job2Data}),
-											_1: _p43._1._0._1
+											_1: _p44._1._0._1
 										}
 									}),
 								_1: A2(
 									_elm_lang$core$Platform_Cmd$map,
-									function (_p45) {
+									function (_p46) {
 										return _arnauorriols$multitaskos$Main$ActiveJob(
-											_arnauorriols$multitaskos$Main$ActiveJobMsg(_p45));
+											_arnauorriols$multitaskos$Main$ActiveJobMsg(_p46));
 									},
 									cmd)
 							};
@@ -18522,7 +18626,7 @@ var _arnauorriols$multitaskos$Main$update = F2(
 						}
 				}
 			case 'Hotkey':
-				switch (_p27._0.ctor) {
+				switch (_p28._0.ctor) {
 					case 'ShowHints':
 						return {
 							ctor: '_Tuple2',
@@ -18541,8 +18645,8 @@ var _arnauorriols$multitaskos$Main$update = F2(
 						};
 					case 'Triggered':
 						var nextMsg = function () {
-							var _p47 = _p27._0._0;
-							switch (_p47.ctor) {
+							var _p48 = _p28._0._0;
+							switch (_p48.ctor) {
 								case 'N':
 									return _arnauorriols$multitaskos$Main$NewJob;
 								case 'L':
@@ -18558,8 +18662,8 @@ var _arnauorriols$multitaskos$Main$update = F2(
 								case 'C':
 									return _arnauorriols$multitaskos$Main$ActiveJob(_arnauorriols$multitaskos$Main$Finish);
 								default:
-									var _p48 = model.hintsStatus;
-									if (_p48.ctor === 'Shown') {
+									var _p49 = model.hintsStatus;
+									if (_p49.ctor === 'Shown') {
 										return _arnauorriols$multitaskos$Main$Hotkey(_arnauorriols$multitaskos$Main$HideHints);
 									} else {
 										return _arnauorriols$multitaskos$Main$Hotkey(_arnauorriols$multitaskos$Main$ShowHints);
@@ -18577,27 +18681,27 @@ var _arnauorriols$multitaskos$Main$update = F2(
 								_elm_lang$core$Task$succeed(_elm_lang$core$Basics$never))
 						};
 					default:
-						var _p49 = A2(_arnauorriols$multitaskos$Hotkey$update, _p27._0._0, model.hotkeysPressed);
-						var hotkeysPressed = _p49._0;
-						var hotkeyTriggered = _p49._1;
+						var _p50 = A2(_arnauorriols$multitaskos$Hotkey$update, _p28._0._0, model.hotkeysPressed);
+						var hotkeysPressed = _p50._0;
+						var hotkeyTriggered = _p50._1;
 						var modelUpdated = _elm_lang$core$Native_Utils.update(
 							model,
 							{hotkeysPressed: hotkeysPressed});
-						var _p50 = hotkeyTriggered;
-						if (_p50.ctor === 'Just') {
+						var _p51 = hotkeyTriggered;
+						if (_p51.ctor === 'Just') {
 							return A3(
 								_ccapndave$elm_update_extra$Update_Extra$andThen,
 								_arnauorriols$multitaskos$Main$update,
 								_arnauorriols$multitaskos$Main$Hotkey(
-									_arnauorriols$multitaskos$Main$Triggered(_p50._0)),
+									_arnauorriols$multitaskos$Main$Triggered(_p51._0)),
 								{ctor: '_Tuple2', _0: modelUpdated, _1: _elm_lang$core$Platform_Cmd$none});
 						} else {
 							return {ctor: '_Tuple2', _0: modelUpdated, _1: _elm_lang$core$Platform_Cmd$none};
 						}
 				}
 			case 'ToggleViewType':
-				var _p51 = model.viewType;
-				if (_p51.ctor === 'WorklogView') {
+				var _p52 = model.viewType;
+				if (_p52.ctor === 'WorklogView') {
 					return {
 						ctor: '_Tuple2',
 						_0: _elm_lang$core$Native_Utils.update(
@@ -18620,15 +18724,15 @@ var _arnauorriols$multitaskos$Main$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{graphState: _p27._0}),
+						{graphState: _p28._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'GraphControls':
-				switch (_p27._0.ctor) {
+				switch (_p28._0.ctor) {
 					case 'ChangeResolution':
 						var graphConfig = model.graphConfig;
-						var _p52 = _arnauorriols$multitaskos$Graph$dateUnitFromString(_p27._0._0);
-						if (_p52.ctor === 'Ok') {
+						var _p53 = _arnauorriols$multitaskos$Graph$dateUnitFromString(_p28._0._0);
+						if (_p53.ctor === 'Ok') {
 							return {
 								ctor: '_Tuple2',
 								_0: _elm_lang$core$Native_Utils.update(
@@ -18636,7 +18740,7 @@ var _arnauorriols$multitaskos$Main$update = F2(
 									{
 										graphConfig: _elm_lang$core$Native_Utils.update(
 											graphConfig,
-											{resolutionUnit: _p52._0})
+											{resolutionUnit: _p53._0})
 									}),
 								_1: _elm_lang$core$Platform_Cmd$none
 							};
@@ -18647,12 +18751,12 @@ var _arnauorriols$multitaskos$Main$update = F2(
 									start: {line: 472, column: 17},
 									end: {line: 477, column: 43}
 								},
-								_p52)(_p52._0);
+								_p53)(_p53._0);
 						}
 					case 'ChangeOffsetUnit':
 						var graphConfig = model.graphConfig;
-						var _p54 = _arnauorriols$multitaskos$Graph$dateUnitFromString(_p27._0._0);
-						if (_p54.ctor === 'Ok') {
+						var _p55 = _arnauorriols$multitaskos$Graph$dateUnitFromString(_p28._0._0);
+						if (_p55.ctor === 'Ok') {
 							return {
 								ctor: '_Tuple2',
 								_0: _elm_lang$core$Native_Utils.update(
@@ -18660,7 +18764,7 @@ var _arnauorriols$multitaskos$Main$update = F2(
 									{
 										graphConfig: _elm_lang$core$Native_Utils.update(
 											graphConfig,
-											{offsetUnit: _p54._0})
+											{offsetUnit: _p55._0})
 									}),
 								_1: _elm_lang$core$Platform_Cmd$none
 							};
@@ -18671,13 +18775,13 @@ var _arnauorriols$multitaskos$Main$update = F2(
 									start: {line: 484, column: 17},
 									end: {line: 489, column: 43}
 								},
-								_p54)(_p54._0);
+								_p55)(_p55._0);
 						}
 					default:
 						var offsetAmmount = A2(
 							_elm_lang$core$Result$withDefault,
 							_arnauorriols$multitaskos$Main$graphConfigStateInit.offsetAmmount,
-							_elm_lang$core$String$toInt(_p27._0._0));
+							_elm_lang$core$String$toInt(_p28._0._0));
 						var graphConfig = model.graphConfig;
 						return {
 							ctor: '_Tuple2',
@@ -18696,7 +18800,7 @@ var _arnauorriols$multitaskos$Main$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{windowSize: _p27._0}),
+						{windowSize: _p28._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 		}
@@ -18833,9 +18937,9 @@ var _arnauorriols$multitaskos$Main$viewGraphControls = function (model) {
 												_1: {
 													ctor: '::',
 													_0: _elm_lang$html$Html_Events$onInput(
-														function (_p56) {
+														function (_p57) {
 															return _arnauorriols$multitaskos$Main$GraphControls(
-																_arnauorriols$multitaskos$Main$ChangeOffsetAmmount(_p56));
+																_arnauorriols$multitaskos$Main$ChangeOffsetAmmount(_p57));
 														}),
 													_1: {
 														ctor: '::',
@@ -18899,9 +19003,9 @@ var _arnauorriols$multitaskos$Main$viewGraphControls = function (model) {
 												_1: {
 													ctor: '::',
 													_0: _arnauorriols$multitaskos$Utils$onChange(
-														function (_p57) {
+														function (_p58) {
 															return _arnauorriols$multitaskos$Main$GraphControls(
-																_arnauorriols$multitaskos$Main$ChangeOffsetUnit(_p57));
+																_arnauorriols$multitaskos$Main$ChangeOffsetUnit(_p58));
 														}),
 													_1: {ctor: '[]'}
 												}
@@ -19023,9 +19127,9 @@ var _arnauorriols$multitaskos$Main$viewGraphControls = function (model) {
 													_1: {
 														ctor: '::',
 														_0: _arnauorriols$multitaskos$Utils$onChange(
-															function (_p58) {
+															function (_p59) {
 																return _arnauorriols$multitaskos$Main$GraphControls(
-																	_arnauorriols$multitaskos$Main$ChangeResolution(_p58));
+																	_arnauorriols$multitaskos$Main$ChangeResolution(_p59));
 															}),
 														_1: {ctor: '[]'}
 													}
@@ -19132,20 +19236,26 @@ var _arnauorriols$multitaskos$Main$view = function (model) {
 			ctor: '::',
 			_0: _arnauorriols$multitaskos$Main$mainSection(
 				function () {
-					var _p59 = model.viewType;
-					if (_p59.ctor === 'WorklogView') {
+					var _p60 = model.viewType;
+					if (_p60.ctor === 'WorklogView') {
 						return {
 							ctor: '::',
 							_0: _arnauorriols$multitaskos$Main$viewNextScheduledJobTitle(model),
 							_1: {
 								ctor: '::',
-								_0: _arnauorriols$multitaskos$Main$viewContextSwitchingControls(model),
+								_0: A2(
+									_arnauorriols$multitaskos$Main$ifNotEditingWorklogEntry,
+									model,
+									_arnauorriols$multitaskos$Main$viewContextSwitchingControls(model)),
 								_1: {
 									ctor: '::',
 									_0: _arnauorriols$multitaskos$Main$viewNextScheduledJobWorklog(model),
 									_1: {
 										ctor: '::',
-										_0: _arnauorriols$multitaskos$Main$viewActiveJobWorklogForm(model),
+										_0: A2(
+											_arnauorriols$multitaskos$Main$ifNotEditingWorklogEntry,
+											model,
+											_arnauorriols$multitaskos$Main$viewActiveJobWorklogForm(model)),
 										_1: {
 											ctor: '::',
 											_0: _arnauorriols$multitaskos$Main$viewHotkeyHintsToggle(model),
@@ -19182,9 +19292,9 @@ var _arnauorriols$multitaskos$Main$main = _elm_lang$html$Html$programWithFlags(
 	{
 		init: function (maybeModel) {
 			var initialModel = function () {
-				var _p60 = maybeModel;
-				if (_p60.ctor === 'Just') {
-					return _arnauorriols$multitaskos$Main$decodeValue(_p60._0);
+				var _p61 = maybeModel;
+				if (_p61.ctor === 'Just') {
+					return _arnauorriols$multitaskos$Main$decodeValue(_p61._0);
 				} else {
 					return _arnauorriols$multitaskos$Main$init;
 				}
@@ -19200,38 +19310,38 @@ var _arnauorriols$multitaskos$Main$main = _elm_lang$html$Html$programWithFlags(
 			function (msg, oldModel) {
 				var jobTracked = _elm_lang$core$List$head(oldModel.jobQueue);
 				var trackMetricsCmd = function () {
-					var _p61 = {ctor: '_Tuple2', _0: jobTracked, _1: msg};
-					_v38_3:
+					var _p62 = {ctor: '_Tuple2', _0: jobTracked, _1: msg};
+					_v39_3:
 					do {
-						if ((_p61.ctor === '_Tuple2') && (_p61._0.ctor === 'Just')) {
-							switch (_p61._1.ctor) {
+						if ((_p62.ctor === '_Tuple2') && (_p62._0.ctor === 'Just')) {
+							switch (_p62._1.ctor) {
 								case 'NextJob':
-									if (_p61._1._0.ctor === 'Execute') {
-										return A3(_arnauorriols$multitaskos$Metrics$track, _arnauorriols$multitaskos$Main$metricsConfig, _p61._0._0.history, _arnauorriols$multitaskos$Main$StartActivity);
+									if (_p62._1._0.ctor === 'Execute') {
+										return A3(_arnauorriols$multitaskos$Metrics$track, _arnauorriols$multitaskos$Main$metricsConfig, _p62._0._0.history, _arnauorriols$multitaskos$Main$StartActivity);
 									} else {
-										break _v38_3;
+										break _v39_3;
 									}
 								case 'ActiveJob':
-									switch (_p61._1._0.ctor) {
+									switch (_p62._1._0.ctor) {
 										case 'Yield':
-											return A3(_arnauorriols$multitaskos$Metrics$track, _arnauorriols$multitaskos$Main$metricsConfig, _p61._0._0.history, _arnauorriols$multitaskos$Main$StopActivity);
+											return A3(_arnauorriols$multitaskos$Metrics$track, _arnauorriols$multitaskos$Main$metricsConfig, _p62._0._0.history, _arnauorriols$multitaskos$Main$StopActivity);
 										case 'Pause':
-											return A3(_arnauorriols$multitaskos$Metrics$track, _arnauorriols$multitaskos$Main$metricsConfig, _p61._0._0.history, _arnauorriols$multitaskos$Main$PauseActivity);
+											return A3(_arnauorriols$multitaskos$Metrics$track, _arnauorriols$multitaskos$Main$metricsConfig, _p62._0._0.history, _arnauorriols$multitaskos$Main$PauseActivity);
 										default:
-											break _v38_3;
+											break _v39_3;
 									}
 								default:
-									break _v38_3;
+									break _v39_3;
 							}
 						} else {
-							break _v38_3;
+							break _v39_3;
 						}
 					} while(false);
 					return _elm_lang$core$Platform_Cmd$none;
 				}();
-				var _p62 = A2(_arnauorriols$multitaskos$Main$update, msg, oldModel);
-				var newModel = _p62._0;
-				var businessCmd = _p62._1;
+				var _p63 = A2(_arnauorriols$multitaskos$Main$update, msg, oldModel);
+				var newModel = _p63._0;
+				var businessCmd = _p63._1;
 				var model2persist = function () {
 					var newModelPersisted = _arnauorriols$multitaskos$Main$modelPersisted(newModel);
 					var oldModelPersisted = _arnauorriols$multitaskos$Main$modelPersisted(oldModel);
@@ -19244,10 +19354,10 @@ var _arnauorriols$multitaskos$Main$main = _elm_lang$html$Html$programWithFlags(
 						{
 							ctor: '::',
 							_0: function () {
-								var _p63 = model2persist;
-								if (_p63.ctor === 'Just') {
+								var _p64 = model2persist;
+								if (_p64.ctor === 'Just') {
 									return _arnauorriols$multitaskos$Main$persistModel(
-										_arnauorriols$multitaskos$Main$encode(_p63._0));
+										_arnauorriols$multitaskos$Main$encode(_p64._0));
 								} else {
 									return _elm_lang$core$Platform_Cmd$none;
 								}
