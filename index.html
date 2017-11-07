@@ -79,11 +79,20 @@
       min-height: auto;
   }
 
-  #delete-worklog-entry-icon {
-      font-size: 1rem;
+  #delete-worklog-entry-icon,
+  #confirm-worklog-entry-edit-icon {
       position: absolute;
-      bottom: 1rem;
       right: 1rem;
+      bottom: 0.8rem;
+      cursor: pointer;
+  }
+
+  #delete-worklog-entry-icon {
+      font-size: 1.2rem;
+  }
+
+  #confirm-worklog-entry-edit-icon {
+      font-size: 2rem;
   }
 
   .flex-contained {
@@ -133,6 +142,7 @@
   }
 
   .worklog-entry-edit {
+      width: 95% !important;
       border-bottom: none !important;
       margin-bottom: 0 !important;
       margin-top: 0 !important;
