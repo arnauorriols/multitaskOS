@@ -19,6 +19,7 @@ import String
 import Json.Decode
 import Json.Encode
 import Html exposing (..)
+import Html.Keyed
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import List.Extra
@@ -392,7 +393,7 @@ viewWorklog windowSize editable model =
                                 li
                                     [ class "collection-item worklog-entry" ]
                                     [ DirtyHtml.Textarea.view
-                                        (DirtyHtml.Textarea.config { toMsg = WorklogEntryTextareaMsg })
+                                        (DirtyHtml.Textarea.defaultConfig { toMsg = WorklogEntryTextareaMsg })
                                         (rows 1
                                             :: class "worklog-entry-edit materialize-textarea"
                                             :: defaultValue worklogEntryContent
@@ -451,24 +452,10 @@ isEditingWorklogEntry { worklog } =
 -}
 viewWorklogForm : Window.Size -> String -> Model -> Html Msg
 viewWorklogForm windowSize buttonText { worklog } =
-    div [ class "row" ]
-        [ div [ class "input-field col s9 m10" ]
-            [ DirtyHtml.Textarea.view
-                (DirtyHtml.Textarea.config { toMsg = WorklogInputTextareaMsg })
-                ([ id "input-worklog"
-                 , class "materialize-textarea"
-                 , rows 1
-                 , defaultValue (Tuple.first (unsavedWorklogEntry worklog))
-                 , onInput (Save 0 >> Worklog)
-                 ]
-                    ++ (if not (Utils.isSmallScreen windowSize) then
-                            [ Utils.onEnter NoOp (Worklog Add) ]
-                        else
-                            []
-                       )
-                )
-                []
-            , label [ for "input-worklog" ]
+    let
+        textareaLabel : Html.Html Msg
+        textareaLabel =
+            label [ for "input-worklog" ]
                 [ text
                     (if not (Utils.isSmallScreen windowSize) then
                         "tips: shift+enter, Markdown..."
@@ -476,13 +463,43 @@ viewWorklogForm windowSize buttonText { worklog } =
                         "tips: multi-line, Markdown..."
                     )
                 ]
-            ]
-        , div [ class "input-field col s3 m2" ]
-            [ button
-                [ class "right waves-effect waves-light btn"
-                , type_ "submit"
-                , onClick (Worklog Add)
+
+        keyedTextarea : String -> Html.Html Msg -> List (Html.Attribute Msg) -> List (Html.Html Msg) -> Html.Html Msg
+        keyedTextarea key label attributes children =
+            Html.Keyed.node "span" [] [ ( key, textarea attributes children ), ( "1", label ) ]
+
+        key : String
+        key =
+            List.length worklog |> toString
+    in
+        div [ class "row" ]
+            [ div [ class "input-field col s9 m10" ]
+                [ DirtyHtml.Textarea.view
+                    (DirtyHtml.Textarea.config
+                        { toMsg = WorklogInputTextareaMsg
+                        , customTag = keyedTextarea key textareaLabel
+                        }
+                    )
+                    ([ id "input-worklog"
+                     , class "materialize-textarea"
+                     , rows 1
+                     , defaultValue (Tuple.first (unsavedWorklogEntry worklog))
+                     , onInput (Save 0 >> Worklog)
+                     ]
+                        ++ (if not (Utils.isSmallScreen windowSize) then
+                                [ Utils.onEnter NoOp (Worklog Add) ]
+                            else
+                                []
+                           )
+                    )
+                    []
                 ]
-                [ text buttonText ]
+            , div [ class "input-field col s3 m2" ]
+                [ button
+                    [ class "right waves-effect waves-light btn"
+                    , type_ "submit"
+                    , onClick (Worklog Add)
+                    ]
+                    [ text buttonText ]
+                ]
             ]
-        ]
