@@ -17016,7 +17016,7 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 											_0: _elm_lang$html$Html_Attributes$rows(1),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$value(
+												_0: _elm_lang$html$Html_Attributes$defaultValue(
 													_elm_lang$core$Tuple$first(
 														_arnauorriols$multitaskos$Job$unsavedWorklogEntry(_p13.worklog))),
 												_1: {
@@ -17364,7 +17364,7 @@ var _arnauorriols$multitaskos$Job$viewWorklog = F3(
 											_0: _elm_lang$html$Html_Attributes$class('worklog-entry-edit materialize-textarea'),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$value(_p28),
+												_0: _elm_lang$html$Html_Attributes$defaultValue(_p28),
 												_1: {
 													ctor: '::',
 													_0: _elm_lang$html$Html_Events$onInput(
