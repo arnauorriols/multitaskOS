@@ -7923,19 +7923,35 @@ var _arnauorriols$multitaskos$DirtyHtml_Textarea$update = function (msg) {
 var _arnauorriols$multitaskos$DirtyHtml_Textarea$Config = function (a) {
 	return {ctor: 'Config', _0: a};
 };
-var _arnauorriols$multitaskos$DirtyHtml_Textarea$config = function (_p1) {
+var _arnauorriols$multitaskos$DirtyHtml_Textarea$defaultConfig = function (_p1) {
 	var _p2 = _p1;
 	return _arnauorriols$multitaskos$DirtyHtml_Textarea$Config(
-		{toMsg: _p2.toMsg});
+		{toMsg: _p2.toMsg, customTag: _elm_lang$core$Maybe$Nothing});
+};
+var _arnauorriols$multitaskos$DirtyHtml_Textarea$config = function (_p3) {
+	var _p4 = _p3;
+	return _arnauorriols$multitaskos$DirtyHtml_Textarea$Config(
+		{
+			toMsg: _p4.toMsg,
+			customTag: _elm_lang$core$Maybe$Just(_p4.customTag)
+		});
 };
 var _arnauorriols$multitaskos$DirtyHtml_Textarea$Resize = {ctor: 'Resize'};
 var _arnauorriols$multitaskos$DirtyHtml_Textarea$view = F3(
-	function (_p3, attributes, children) {
-		var _p4 = _p3;
+	function (_p5, attributes, children) {
+		var _p6 = _p5;
 		var resizeOnFocus = _elm_lang$html$Html_Events$onFocus(
-			_p4._0.toMsg(_arnauorriols$multitaskos$DirtyHtml_Textarea$Resize));
+			_p6._0.toMsg(_arnauorriols$multitaskos$DirtyHtml_Textarea$Resize));
+		var textarea = function () {
+			var _p7 = _p6._0.customTag;
+			if (_p7.ctor === 'Just') {
+				return _p7._0;
+			} else {
+				return _elm_lang$html$Html$textarea;
+			}
+		}();
 		return A2(
-			_elm_lang$html$Html$textarea,
+			textarea,
 			{ctor: '::', _0: resizeOnFocus, _1: attributes},
 			children);
 	});
@@ -16630,6 +16646,10 @@ var _arnauorriols$multitaskos$Hotkey$subscriptions = _elm_lang$core$Platform_Sub
 		}
 	});
 
+var _elm_lang$html$Html_Keyed$node = _elm_lang$virtual_dom$VirtualDom$keyedNode;
+var _elm_lang$html$Html_Keyed$ol = _elm_lang$html$Html_Keyed$node('ol');
+var _elm_lang$html$Html_Keyed$ul = _elm_lang$html$Html_Keyed$node('ul');
+
 var _ccapndave$elm_update_extra$Update_Extra$identity = function (model) {
 	return A2(
 		_elm_lang$core$Platform_Cmd_ops['!'],
@@ -16981,6 +17001,42 @@ var _arnauorriols$multitaskos$Job$Add = {ctor: 'Add'};
 var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 	function (windowSize, buttonText, _p12) {
 		var _p13 = _p12;
+		var _p15 = _p13.worklog;
+		var key = _elm_lang$core$Basics$toString(
+			_elm_lang$core$List$length(_p15));
+		var keyedTextarea = F4(
+			function (key, label, attributes, children) {
+				return A3(
+					_elm_lang$html$Html_Keyed$node,
+					'span',
+					{ctor: '[]'},
+					{
+						ctor: '::',
+						_0: {
+							ctor: '_Tuple2',
+							_0: key,
+							_1: A2(_elm_lang$html$Html$textarea, attributes, children)
+						},
+						_1: {
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: '1', _1: label},
+							_1: {ctor: '[]'}
+						}
+					});
+			});
+		var textareaLabel = A2(
+			_elm_lang$html$Html$label,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$for('input-worklog'),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text(
+					(!_arnauorriols$multitaskos$Utils$isSmallScreen(windowSize)) ? 'tips: shift+enter, Markdown...' : 'tips: multi-line, Markdown...'),
+				_1: {ctor: '[]'}
+			});
 		return A2(
 			_elm_lang$html$Html$div,
 			{
@@ -17002,7 +17058,10 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 						_0: A3(
 							_arnauorriols$multitaskos$DirtyHtml_Textarea$view,
 							_arnauorriols$multitaskos$DirtyHtml_Textarea$config(
-								{toMsg: _arnauorriols$multitaskos$Job$WorklogInputTextareaMsg}),
+								{
+									toMsg: _arnauorriols$multitaskos$Job$WorklogInputTextareaMsg,
+									customTag: A2(keyedTextarea, key, textareaLabel)
+								}),
 							A2(
 								_elm_lang$core$Basics_ops['++'],
 								{
@@ -17018,7 +17077,7 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 												ctor: '::',
 												_0: _elm_lang$html$Html_Attributes$defaultValue(
 													_elm_lang$core$Tuple$first(
-														_arnauorriols$multitaskos$Job$unsavedWorklogEntry(_p13.worklog))),
+														_arnauorriols$multitaskos$Job$unsavedWorklogEntry(_p15))),
 												_1: {
 													ctor: '::',
 													_0: _elm_lang$html$Html_Events$onInput(
@@ -17041,23 +17100,7 @@ var _arnauorriols$multitaskos$Job$viewWorklogForm = F3(
 									_1: {ctor: '[]'}
 								} : {ctor: '[]'}),
 							{ctor: '[]'}),
-						_1: {
-							ctor: '::',
-							_0: A2(
-								_elm_lang$html$Html$label,
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html_Attributes$for('input-worklog'),
-									_1: {ctor: '[]'}
-								},
-								{
-									ctor: '::',
-									_0: _elm_lang$html$Html$text(
-										(!_arnauorriols$multitaskos$Utils$isSmallScreen(windowSize)) ? 'tips: shift+enter, Markdown...' : 'tips: multi-line, Markdown...'),
-									_1: {ctor: '[]'}
-								}),
-							_1: {ctor: '[]'}
-						}
+						_1: {ctor: '[]'}
 					}),
 				_1: {
 					ctor: '::',
@@ -17107,51 +17150,51 @@ var _arnauorriols$multitaskos$Job$focusWorklogForm = _arnauorriols$multitaskos$J
 	_arnauorriols$multitaskos$Job$Attempt('input-worklog'));
 var _arnauorriols$multitaskos$Job$update = F2(
 	function (msg, model) {
-		var _p15 = msg;
-		switch (_p15.ctor) {
+		var _p16 = msg;
+		switch (_p16.ctor) {
 			case 'NoOp':
 				return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'Focus':
-				if (_p15._0.ctor === 'Attempt') {
-					var focusTask = _elm_lang$dom$Dom$focus(_p15._0._0);
+				if (_p16._0.ctor === 'Attempt') {
+					var focusTask = _elm_lang$dom$Dom$focus(_p16._0._0);
 					return {
 						ctor: '_Tuple2',
 						_0: model,
 						_1: A2(
 							_elm_lang$core$Task$attempt,
-							function (_p16) {
+							function (_p17) {
 								return _arnauorriols$multitaskos$Job$Focus(
-									_arnauorriols$multitaskos$Job$Result(_p16));
+									_arnauorriols$multitaskos$Job$Result(_p17));
 							},
 							focusTask)
 					};
 				} else {
-					var _p17 = _p15._0._0;
-					if (_p17.ctor === 'Err') {
-						var _p18 = A2(_elm_lang$core$Debug$log, 'Element was not found, thus could not be focused', _p17._0._0);
+					var _p18 = _p16._0._0;
+					if (_p18.ctor === 'Err') {
+						var _p19 = A2(_elm_lang$core$Debug$log, 'Element was not found, thus could not be focused', _p18._0._0);
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 					} else {
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 					}
 				}
 			case 'Blur':
-				if (_p15._0.ctor === 'Attempt') {
-					var blurTask = _elm_lang$dom$Dom$blur(_p15._0._0);
+				if (_p16._0.ctor === 'Attempt') {
+					var blurTask = _elm_lang$dom$Dom$blur(_p16._0._0);
 					return {
 						ctor: '_Tuple2',
 						_0: model,
 						_1: A2(
 							_elm_lang$core$Task$attempt,
-							function (_p19) {
+							function (_p20) {
 								return _arnauorriols$multitaskos$Job$Blur(
-									_arnauorriols$multitaskos$Job$Result(_p19));
+									_arnauorriols$multitaskos$Job$Result(_p20));
 							},
 							blurTask)
 					};
 				} else {
-					var _p20 = _p15._0._0;
-					if (_p20.ctor === 'Err') {
-						var _p21 = A2(_elm_lang$core$Debug$log, 'Element was not found, thus could not be blurred', _p20._0._0);
+					var _p21 = _p16._0._0;
+					if (_p21.ctor === 'Err') {
+						var _p22 = A2(_elm_lang$core$Debug$log, 'Element was not found, thus could not be blurred', _p21._0._0);
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
 					} else {
 						return {ctor: '_Tuple2', _0: model, _1: _elm_lang$core$Platform_Cmd$none};
@@ -17162,7 +17205,7 @@ var _arnauorriols$multitaskos$Job$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{title: _p15._0}),
+						{title: _p16._0}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'TitleWidget':
@@ -17170,11 +17213,11 @@ var _arnauorriols$multitaskos$Job$update = F2(
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
 						model,
-						{titleWidgetState: _p15._0._1}),
-					_1: _p15._0._0
+						{titleWidgetState: _p16._0._1}),
+					_1: _p16._0._0
 				};
 			case 'Worklog':
-				switch (_p15._0.ctor) {
+				switch (_p16._0.ctor) {
 					case 'Add':
 						return A3(
 							_ccapndave$elm_update_extra$Update_Extra$andThen,
@@ -17195,7 +17238,7 @@ var _arnauorriols$multitaskos$Job$update = F2(
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
 								{
-									worklog: A3(_arnauorriols$multitaskos$Job$editWorklogEntryContent, _p15._0._0, _p15._0._1, model.worklog)
+									worklog: A3(_arnauorriols$multitaskos$Job$editWorklogEntryContent, _p16._0._0, _p16._0._1, model.worklog)
 								}),
 							_1: _elm_lang$core$Platform_Cmd$none
 						};
@@ -17205,7 +17248,7 @@ var _arnauorriols$multitaskos$Job$update = F2(
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
 								{
-									worklog: A2(_elm_community$list_extra$List_Extra$removeAt, _p15._0._0, model.worklog)
+									worklog: A2(_elm_community$list_extra$List_Extra$removeAt, _p16._0._0, model.worklog)
 								}),
 							_1: _elm_lang$core$Platform_Cmd$none
 						};
@@ -17215,9 +17258,9 @@ var _arnauorriols$multitaskos$Job$update = F2(
 							_0: _elm_lang$core$Native_Utils.update(
 								model,
 								{
-									worklog: A3(_arnauorriols$multitaskos$Job$updateWorklogEntryWidgetState, _p15._0._0, _p15._0._1._1, model.worklog)
+									worklog: A3(_arnauorriols$multitaskos$Job$updateWorklogEntryWidgetState, _p16._0._0, _p16._0._1._1, model.worklog)
 								}),
-							_1: _p15._0._1._0
+							_1: _p16._0._1._0
 						};
 				}
 			case 'WorklogEntryTextareaMsg':
@@ -17227,7 +17270,7 @@ var _arnauorriols$multitaskos$Job$update = F2(
 					_1: A2(
 						_elm_lang$core$Platform_Cmd$map,
 						_arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg,
-						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p15._0))
+						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p16._0))
 				};
 			default:
 				return {
@@ -17236,14 +17279,14 @@ var _arnauorriols$multitaskos$Job$update = F2(
 					_1: A2(
 						_elm_lang$core$Platform_Cmd$map,
 						_arnauorriols$multitaskos$Job$WorklogInputTextareaMsg,
-						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p15._0))
+						_arnauorriols$multitaskos$DirtyHtml_Textarea$update(_p16._0))
 				};
 		}
 	});
 var _arnauorriols$multitaskos$Job$viewWorklog = F3(
 	function (windowSize, editable, model) {
-		var _p22 = _arnauorriols$multitaskos$Job$savedWorklog(model.worklog);
-		if (_p22.ctor === '[]') {
+		var _p23 = _arnauorriols$multitaskos$Job$savedWorklog(model.worklog);
+		if (_p23.ctor === '[]') {
 			return _arnauorriols$multitaskos$Job$viewEmptyJobHelpCard;
 		} else {
 			var confirmEditIcon = function (worklogEntryIndex) {
@@ -17307,31 +17350,31 @@ var _arnauorriols$multitaskos$Job$viewWorklog = F3(
 					});
 			};
 			var renderWorklogEntry = F2(
-				function (index, _p23) {
-					var _p24 = _p23;
-					var _p28 = _p24._0;
+				function (index, _p24) {
+					var _p25 = _p24;
+					var _p29 = _p25._0;
 					var indexCountingUnsavedEntry = index + 1;
 					var config = _arnauorriols$multitaskos$EditableElement$config(
 						{
-							stateMsg: function (_p25) {
+							stateMsg: function (_p26) {
 								return _arnauorriols$multitaskos$Job$Worklog(
-									A2(_arnauorriols$multitaskos$Job$WorklogEntryWidget, indexCountingUnsavedEntry, _p25));
+									A2(_arnauorriols$multitaskos$Job$WorklogEntryWidget, indexCountingUnsavedEntry, _p26));
 							},
 							editEnabled: editable,
 							submitOnEnter: !_arnauorriols$multitaskos$Utils$isSmallScreen(windowSize)
 						});
-					var _p26 = A2(_arnauorriols$multitaskos$EditableElement$getMode, config, _p24._1);
-					if (_p26.ctor === 'ReadMode') {
+					var _p27 = A2(_arnauorriols$multitaskos$EditableElement$getMode, config, _p25._1);
+					if (_p27.ctor === 'ReadMode') {
 						return A2(
 							_elm_lang$html$Html$li,
 							{
 								ctor: '::',
 								_0: _elm_lang$html$Html_Attributes$class('collection-item worklog-entry'),
-								_1: _p26._0
+								_1: _p27._0
 							},
 							editable ? {
 								ctor: '::',
-								_0: _arnauorriols$multitaskos$EditableElement$markdownReadMode(_p28),
+								_0: _arnauorriols$multitaskos$EditableElement$markdownReadMode(_p29),
 								_1: {
 									ctor: '::',
 									_0: deleteIcon(indexCountingUnsavedEntry),
@@ -17339,7 +17382,7 @@ var _arnauorriols$multitaskos$Job$viewWorklog = F3(
 								}
 							} : {
 								ctor: '::',
-								_0: _arnauorriols$multitaskos$EditableElement$markdownReadMode(_p28),
+								_0: _arnauorriols$multitaskos$EditableElement$markdownReadMode(_p29),
 								_1: {ctor: '[]'}
 							});
 					} else {
@@ -17354,7 +17397,7 @@ var _arnauorriols$multitaskos$Job$viewWorklog = F3(
 								ctor: '::',
 								_0: A3(
 									_arnauorriols$multitaskos$DirtyHtml_Textarea$view,
-									_arnauorriols$multitaskos$DirtyHtml_Textarea$config(
+									_arnauorriols$multitaskos$DirtyHtml_Textarea$defaultConfig(
 										{toMsg: _arnauorriols$multitaskos$Job$WorklogEntryTextareaMsg}),
 									{
 										ctor: '::',
@@ -17364,15 +17407,15 @@ var _arnauorriols$multitaskos$Job$viewWorklog = F3(
 											_0: _elm_lang$html$Html_Attributes$class('worklog-entry-edit materialize-textarea'),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html_Attributes$defaultValue(_p28),
+												_0: _elm_lang$html$Html_Attributes$defaultValue(_p29),
 												_1: {
 													ctor: '::',
 													_0: _elm_lang$html$Html_Events$onInput(
-														function (_p27) {
+														function (_p28) {
 															return _arnauorriols$multitaskos$Job$Worklog(
-																A2(_arnauorriols$multitaskos$Job$Save, indexCountingUnsavedEntry, _p27));
+																A2(_arnauorriols$multitaskos$Job$Save, indexCountingUnsavedEntry, _p28));
 														}),
-													_1: _p26._0
+													_1: _p27._0
 												}
 											}
 										}
@@ -17393,7 +17436,7 @@ var _arnauorriols$multitaskos$Job$viewWorklog = F3(
 					_0: _elm_lang$html$Html_Attributes$class('grey-text collection with-header flex-scrollable z-depth-1'),
 					_1: {ctor: '[]'}
 				},
-				A2(_elm_lang$core$List$indexedMap, renderWorklogEntry, _p22));
+				A2(_elm_lang$core$List$indexedMap, renderWorklogEntry, _p23));
 		}
 	});
 
