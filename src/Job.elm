@@ -395,7 +395,7 @@ viewWorklog windowSize editable model =
                                         (DirtyHtml.Textarea.config { toMsg = WorklogEntryTextareaMsg })
                                         (rows 1
                                             :: class "worklog-entry-edit materialize-textarea"
-                                            :: value worklogEntryContent
+                                            :: defaultValue worklogEntryContent
                                             :: onInput (Save indexCountingUnsavedEntry >> Worklog)
                                             :: attributes
                                         )
@@ -458,7 +458,7 @@ viewWorklogForm windowSize buttonText { worklog } =
                 ([ id "input-worklog"
                  , class "materialize-textarea"
                  , rows 1
-                 , value (Tuple.first (unsavedWorklogEntry worklog))
+                 , defaultValue (Tuple.first (unsavedWorklogEntry worklog))
                  , onInput (Save 0 >> Worklog)
                  ]
                     ++ (if not (Utils.isSmallScreen windowSize) then
