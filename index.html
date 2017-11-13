@@ -299,11 +299,15 @@
       border-style: solid !important;
       border: 1px;
       border-radius: 4px;
-      padding-left: 0.4rem;
-      padding-right: 0.5rem;
-      padding-bottom: 0.1rem;
+      padding: 0rem 0.4rem;
       background-color: rgba(0, 0, 0, .02);
       border-color: rgba(0, 0, 0, .15);
+  }
+
+  @media (max-width: 400px) {
+      .worklog-entry .markdown code {
+          padding: 0.08rem 0.4rem;
+      }
   }
 
   .worklog-entry .markdown pre>code {
