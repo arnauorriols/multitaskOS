@@ -1,5 +1,5 @@
 {
-    "version": "2.4.2",
+    "version": "2.5.0",
     "summary": "Multitasking OS",
     "repository": "https://github.com/arnauorriols/multitaskos.git",
     "license": "BSD3",
@@ -14,9 +14,11 @@
         "elm-lang/core": "5.1.1 <= v < 6.0.0",
         "elm-lang/dom": "1.1.1 <= v < 2.0.0",
         "elm-lang/html": "2.0.0 <= v < 3.0.0",
+        "elm-lang/http": "1.0.0 <= v < 2.0.0",
         "elm-lang/keyboard": "1.0.1 <= v < 2.0.0",
         "elm-lang/window": "1.0.1 <= v < 2.0.0",
         "evancz/elm-markdown": "3.0.2 <= v < 4.0.0",
+        "fredcy/elm-defer-command": "1.0.1 <= v < 2.0.0",
         "rluiten/elm-date-extra": "9.1.0 <= v < 10.0.0",
         "terezka/elm-plot": "5.1.0 <= v < 6.0.0"
     },

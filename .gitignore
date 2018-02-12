@@ -12,3 +12,4 @@ docs.json
 node_modules/
 chrome-extension/*
 !chrome-extension/manifest.json
+.vscode

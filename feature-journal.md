@@ -31,3 +31,4 @@
 29. I can write multiple lines using ctrl+enter
 30. I can write using Markdown syntax
 31. I can pause a job and continue with it later
+32. I can export a job in a JSON format
