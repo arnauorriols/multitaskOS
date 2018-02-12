@@ -115,6 +115,27 @@ document.addEventListener('DOMContentLoaded', function() {
         $(document.activeElement).trigger('autoresize');
     });
 
+    multitaskos.ports.initDirtyDropdown.subscribe(function () {
+      var dropdowns = $('.dirty-dropdown');
+      dropdowns.dropdown({
+        alignment: "right",
+        constrainWidth: false,
+        belowOrigin: true,
+        gutter: -3,
+        stopPropagation: true
+      });
+    })
+
+		multitaskos.ports.readFile.subscribe(function (inputId) {
+			const file = document.getElementById(inputId).files[0];
+			const fileReader = new FileReader();
+			fileReader.onload = function (event) {
+				const content = JSON.parse(event.target.result);
+				multitaskos.ports.fileRead.send(content);
+			};
+			fileReader.readAsText(file);
+		});
+
 		// Register dummy serviceWorker for install to home screen banner in Android to appear
 		if (navigator.serviceWorker) {
 			navigator.serviceWorker.register('dummy-service-worker.js', {scope: './'});

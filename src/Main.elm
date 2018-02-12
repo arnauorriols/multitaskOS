@@ -7,6 +7,7 @@ import Json.Encode
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
+import Http
 import Update.Extra
 import List.Extra
 import Window
@@ -16,6 +17,7 @@ import Job
 import Metrics
 import Graph
 import Helpcard
+import DirtyHtml.Dropdown
 
 
 -- MODEL
@@ -30,6 +32,7 @@ type alias Model =
     , graphState : Graph.State
     , graphConfig : GraphConfigState
     , windowSize : Window.Size
+    , importExportDropdownState : DirtyHtml.Dropdown.Model
     }
 
 
@@ -56,6 +59,7 @@ init =
     , graphState = Graph.init
     , graphConfig = graphConfigStateInit
     , windowSize = windowSizeInit
+    , importExportDropdownState = DirtyHtml.Dropdown.init
     }
 
 
@@ -160,17 +164,19 @@ encode model =
                     Queued ->
                         "Queued"
                 )
-
-        encodeJobQueue job =
-            Json.Encode.object
-                [ ( "data", Job.encode job.data )
-                , ( "history", Metrics.encode metricsConfig job.history )
-                ]
     in
         Json.Encode.object
-            [ ( "jobQueue", Json.Encode.list (List.map encodeJobQueue model.jobQueue) )
+            [ ( "jobQueue", Json.Encode.list (List.map encodeQueuePosition model.jobQueue) )
             , ( "nextJobStatus", encodeStatus model.nextJobStatus )
             ]
+
+
+encodeQueuePosition : QueuePosition Job.Model -> Json.Encode.Value
+encodeQueuePosition job =
+    Json.Encode.object
+        [ ( "data", Job.encode job.data )
+        , ( "history", Metrics.encode metricsConfig job.history )
+        ]
 
 
 decoder : Json.Decode.Decoder Model
@@ -191,23 +197,32 @@ decoder =
             (Json.Decode.map jobStatusDeserializer Json.Decode.string)
 
         jobQueueDecoder =
-            Json.Decode.list
-                (Json.Decode.map2
-                    QueuePosition
-                    (Json.Decode.field "data" Job.decoder)
-                    (Json.Decode.field "history" (Metrics.decoder metricsConfig))
-                )
+            Json.Decode.list queuePositionDecoder
     in
-        Json.Decode.map8
-            Model
+        Json.Decode.map2
+            (\jobQueue nextJobStates ->
+                Model
+                    jobQueue
+                    nextJobStates
+                    Hotkey.init
+                    Hidden
+                    WorklogView
+                    Graph.init
+                    graphConfigStateInit
+                    windowSizeInit
+                    DirtyHtml.Dropdown.init
+            )
             (Json.Decode.field "jobQueue" jobQueueDecoder)
             (Json.Decode.field "nextJobStatus" jobStatusDecoder)
-            (Json.Decode.succeed Hotkey.init)
-            (Json.Decode.succeed Hidden)
-            (Json.Decode.succeed WorklogView)
-            (Json.Decode.succeed Graph.init)
-            (Json.Decode.succeed graphConfigStateInit)
-            (Json.Decode.succeed windowSizeInit)
+
+
+queuePositionDecoder : Json.Decode.Decoder (QueuePosition Job.Model)
+queuePositionDecoder =
+    (Json.Decode.map2
+        QueuePosition
+        (Json.Decode.field "data" Job.decoder)
+        (Json.Decode.field "history" (Metrics.decoder metricsConfig))
+    )
 
 
 decodeValue : Json.Encode.Value -> Model
@@ -227,6 +242,7 @@ decodeValue value =
 type Msg
     = NoOp
     | SyncModel Model
+    | ReplaceNextJob ReplaceNextJobMsg
     | NewJob
     | NextJob NextJobMsg
     | ActiveJob ActiveJobMsg
@@ -235,6 +251,12 @@ type Msg
     | SetGraphState Graph.State
     | GraphControls GraphControlsMsg
     | WindowResize Window.Size
+    | InputOutputDropdownMsg DirtyHtml.Dropdown.Msg
+
+
+type ReplaceNextJobMsg
+    = Attempt String
+    | Result Json.Decode.Value
 
 
 type NextJobMsg
@@ -274,6 +296,26 @@ update action model =
         SyncModel model ->
             ( model, Cmd.none )
 
+        ReplaceNextJob (Result jobJson) ->
+            case Json.Decode.decodeValue queuePositionDecoder jobJson of
+                Ok job ->
+                    case model.jobQueue of
+                        nextJob :: rest ->
+                            ( { model | jobQueue = job :: rest }, Cmd.none )
+
+                        [] ->
+                            ( { model | jobQueue = [ job ] }, Cmd.none )
+
+                Err error ->
+                    let
+                        log =
+                            Debug.log "Error decoding" jobJson
+                    in
+                        ( model, Cmd.none )
+
+        ReplaceNextJob (Attempt inputId) ->
+            ( model, readFile inputId )
+
         NewJob ->
             case model.nextJobStatus of
                 Active ->
@@ -284,7 +326,7 @@ update action model =
                         newJob =
                             { data = Job.init, history = Metrics.init }
                     in
-                        ( { model | jobQueue = newJob :: model.jobQueue }, Cmd.none )
+                        ( { model | jobQueue = newJob :: model.jobQueue, importExportDropdownState = DirtyHtml.Dropdown.init }, Cmd.none )
                             |> Update.Extra.andThen update (NextJob (NextJobMsg Job.triggerTitleEditMode))
 
         NextJob Execute ->
@@ -501,6 +543,19 @@ update action model =
         WindowResize windowSize ->
             ( { model | windowSize = windowSize }, Cmd.none )
 
+        InputOutputDropdownMsg dropdownMsg ->
+            let
+                ( newDropdownState, newDropdownCmd ) =
+                    DirtyHtml.Dropdown.update dropdownMsg model.importExportDropdownState
+
+                newModel =
+                    { model | importExportDropdownState = newDropdownState }
+
+                newCmd =
+                    Cmd.map InputOutputDropdownMsg newDropdownCmd
+            in
+                ( newModel, newCmd )
+
 
 
 -- VIEW
@@ -612,52 +667,76 @@ viewNextScheduledJobTitle model =
 
 viewContextSwitchingControls : Model -> Html Msg
 viewContextSwitchingControls model =
-    if not (List.isEmpty model.jobQueue) then
-        div [ id "controls-row" ] <|
-            (case model.nextJobStatus of
-                Active ->
-                    [ button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (ActiveJob Pause)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Pause") ]
-                    , button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (ActiveJob Yield)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Yield") ]
-                    , button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (ActiveJob Finish)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finish") ]
-                    ]
+    case List.head model.jobQueue of
+        Just queuePosition ->
+            div [ id "controls-row" ] <|
+                (case model.nextJobStatus of
+                    Active ->
+                        let
+                            pauseButton =
+                                button
+                                    [ class "waves-effect waves-light btn"
+                                    , onClick (ActiveJob Pause)
+                                    ]
+                                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Pause") ]
 
-                Queued ->
-                    [ button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (NextJob Execute)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+L" "Load") ]
-                    , button
-                        ([ classList
-                            [ ( "waves-effect waves-light btn", True )
-                            , ( "disabled", List.length model.jobQueue < 2 )
+                            yieldButton =
+                                button
+                                    [ class "waves-effect waves-light btn"
+                                    , onClick (ActiveJob Yield)
+                                    ]
+                                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+Y" "Yield") ]
+
+                            finishButton =
+                                button
+                                    [ class "waves-effect waves-light btn"
+                                    , onClick (ActiveJob Finish)
+                                    ]
+                                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+C" "Finish") ]
+                        in
+                            [ pauseButton
+                            , yieldButton
+                            , finishButton
                             ]
-                         , onClick (NextJob Skip)
-                         ]
-                        )
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+S" "Skip") ]
-                    , button
-                        [ class "waves-effect waves-light btn"
-                        , onClick (NextJob Drop)
-                        ]
-                        [ text (hotkeyHintOrReal model.hintsStatus "Alt+R" "Drop") ]
-                    ]
-            )
-                ++ [ viewViewTypeToggle model ]
-    else
-        text ""
+
+                    Queued ->
+                        let
+                            loadButton =
+                                button
+                                    [ class "waves-effect waves-light btn"
+                                    , onClick (NextJob Execute)
+                                    ]
+                                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+L" "Load") ]
+
+                            skipButton =
+                                button
+                                    ([ classList
+                                        [ ( "waves-effect waves-light btn", True )
+                                        , ( "disabled", List.length model.jobQueue < 2 )
+                                        ]
+                                     , onClick (NextJob Skip)
+                                     ]
+                                    )
+                                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+S" "Skip") ]
+
+                            dropButton =
+                                button
+                                    [ class "waves-effect waves-light btn"
+                                    , onClick (NextJob Drop)
+                                    ]
+                                    [ text (hotkeyHintOrReal model.hintsStatus "Alt+R" "Drop") ]
+                        in
+                            [ loadButton
+                            , skipButton
+                            , dropButton
+                            ]
+                )
+                    ++ [ viewImportExportMenu queuePosition
+                       , viewViewTypeToggle model
+                       ]
+
+        Nothing ->
+            text ""
 
 
 viewNextScheduledJobWorklog : Model -> Html Msg
@@ -709,90 +788,106 @@ viewActiveJobWorklogForm model =
 
 viewGraphControls : Model -> Html Msg
 viewGraphControls model =
-    div []
-        [ div
-            [ class "col s2 m1 graph-control" ]
-            [ label
-                []
-                [ text "Since"
-                , input
-                    [ id "offset-ammount-input"
-                    , type_ "number"
-                    , Html.Attributes.min "0"
-                    , onInput (ChangeOffsetAmmount >> GraphControls)
-                    , value (toString model.graphConfig.offsetAmmount)
-                    ]
+    let
+        offsetAmmountControl =
+            div
+                [ class "col s2 m1 graph-control" ]
+                [ label
                     []
-                ]
-            ]
-        , div
-            [ class "col graph-control graph-control-bundled" ]
-            [ label
-                []
-                [ span [ style [ ( "visibility", "hidden" ) ] ] [ text "unit" ]
-                , select
-                    [ id "offset-unit-select"
-                    , class "browser-default"
-                    , Utils.onChange (ChangeOffsetUnit >> GraphControls)
-                    ]
-                    [ option
-                        [ value "Months"
-                        , selected (model.graphConfig.offsetUnit == Graph.Months)
+                    [ text "Since"
+                    , input
+                        [ id "offset-ammount-input"
+                        , type_ "number"
+                        , Html.Attributes.min "0"
+                        , onInput (ChangeOffsetAmmount >> GraphControls)
+                        , value (toString model.graphConfig.offsetAmmount)
                         ]
-                        [ text "Months ago" ]
-                    , option
-                        [ value "Days"
-                        , selected (model.graphConfig.offsetUnit == Graph.Days)
-                        ]
-                        [ text "Days ago" ]
-                    , option
-                        [ value "Hours"
-                        , selected (model.graphConfig.offsetUnit == Graph.Hours)
-                        ]
-                        [ text "Hours ago" ]
-                    , option
-                        [ value "Minutes"
-                        , selected (model.graphConfig.offsetUnit == Graph.Minutes)
-                        ]
-                        [ text "Minutes ago" ]
+                        []
                     ]
                 ]
-            ]
-        , div
-            [ class "col graph-control graph-control-next" ]
-            [ label
-                []
-                [ text "Resolution"
-                , select
-                    [ id "resolution-select"
-                    , class "browser-default"
-                    , Utils.onChange (ChangeResolution >> GraphControls)
-                    ]
-                    [ option
-                        [ value "Minutes"
-                        , selected (model.graphConfig.resolutionUnit == Graph.Minutes)
+
+        offsetUnitControl =
+            div
+                [ class "col graph-control graph-control-bundled" ]
+                [ label
+                    []
+                    [ span [ style [ ( "visibility", "hidden" ) ] ] [ text "unit" ]
+                    , select
+                        [ id "offset-unit-select"
+                        , class "browser-default"
+                        , Utils.onChange (ChangeOffsetUnit >> GraphControls)
                         ]
-                        [ text "Minutes" ]
-                    , option
-                        [ value "Hours"
-                        , selected (model.graphConfig.resolutionUnit == Graph.Hours)
+                        [ option
+                            [ value "Months"
+                            , selected (model.graphConfig.offsetUnit == Graph.Months)
+                            ]
+                            [ text "Months ago" ]
+                        , option
+                            [ value "Days"
+                            , selected (model.graphConfig.offsetUnit == Graph.Days)
+                            ]
+                            [ text "Days ago" ]
+                        , option
+                            [ value "Hours"
+                            , selected (model.graphConfig.offsetUnit == Graph.Hours)
+                            ]
+                            [ text "Hours ago" ]
+                        , option
+                            [ value "Minutes"
+                            , selected (model.graphConfig.offsetUnit == Graph.Minutes)
+                            ]
+                            [ text "Minutes ago" ]
                         ]
-                        [ text "Hours" ]
-                    , option
-                        [ value "Days"
-                        , selected (model.graphConfig.resolutionUnit == Graph.Days)
-                        ]
-                        [ text "Days" ]
-                    , option
-                        [ value "Months"
-                        , selected (model.graphConfig.resolutionUnit == Graph.Months)
-                        ]
-                        [ text "Months" ]
                     ]
                 ]
-            ]
-        , viewViewTypeToggle model
-        ]
+
+        offsetResolutionControl =
+            div
+                [ class "col graph-control graph-control-next" ]
+                [ label
+                    []
+                    [ text "Resolution"
+                    , select
+                        [ id "resolution-select"
+                        , class "browser-default"
+                        , Utils.onChange (ChangeResolution >> GraphControls)
+                        ]
+                        [ option
+                            [ value "Minutes"
+                            , selected (model.graphConfig.resolutionUnit == Graph.Minutes)
+                            ]
+                            [ text "Minutes" ]
+                        , option
+                            [ value "Hours"
+                            , selected (model.graphConfig.resolutionUnit == Graph.Hours)
+                            ]
+                            [ text "Hours" ]
+                        , option
+                            [ value "Days"
+                            , selected (model.graphConfig.resolutionUnit == Graph.Days)
+                            ]
+                            [ text "Days" ]
+                        , option
+                            [ value "Months"
+                            , selected (model.graphConfig.resolutionUnit == Graph.Months)
+                            ]
+                            [ text "Months" ]
+                        ]
+                    ]
+                ]
+    in
+        case (List.head model.jobQueue) of
+            Just queuePosition ->
+                div []
+                    [ offsetAmmountControl
+                    , offsetUnitControl
+                    , offsetResolutionControl
+                    , viewImportExportMenu queuePosition
+                    , viewViewTypeToggle model
+                    ]
+
+            Nothing ->
+                div [] []
 
 
 viewNextScheduledJobGraph : Model -> Html Msg
@@ -844,7 +939,7 @@ viewViewTypeToggle model =
                     "assignment"
     in
         button
-            [ class "waves-effect waves-light btn right icon-btn without-margin-btn"
+            [ class "waves-effect waves-light btn right icon-btn"
             , onClick ToggleViewType
             ]
             [ i
@@ -853,12 +948,58 @@ viewViewTypeToggle model =
             ]
 
 
+viewImportExportMenu : QueuePosition Job.Model -> Html Msg
+viewImportExportMenu job =
+    let
+        urlEncodedJob =
+            "data:text/json;charset=utf-8," ++ Http.encodeUri (Json.Encode.encode 4 (encodeQueuePosition job))
+
+        importButton =
+            li
+                [ class "file-field" ]
+                [ span
+                    []
+                    [ text "Import" ]
+                , input
+                    [ type_ "file"
+                    , id "import-file-input"
+                    , value ""
+                    , Utils.onChange (\filename -> ReplaceNextJob (Attempt "import-file-input"))
+                    ]
+                    []
+                ]
+
+        exportButton =
+            li
+                []
+                [ a
+                    [ downloadAs (job.data.title ++ ".json")
+                    , href urlEncodedJob
+                    ]
+                    [ text "Export" ]
+                ]
+    in
+        DirtyHtml.Dropdown.view
+            (\attr children ->
+                button
+                    (class "waves-effect waves-light btn right icon-btn" :: attr)
+                    (i [ class "material-icons" ] [ Html.text "import_export" ] :: children)
+            )
+            (\attr children ->
+                ul
+                    (style [ ( "margin-top", "0.5rem" ), ( "overflow-x", "hidden" ) ] :: attr)
+                    (importButton :: exportButton :: children)
+            )
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ syncModelFromDatabase (decodeValue >> SyncModel)
         , Sub.map (HotkeyMsg >> Hotkey) Hotkey.subscriptions
         , Window.resizes WindowResize
+        , Sub.map InputOutputDropdownMsg (DirtyHtml.Dropdown.subscriptions model.importExportDropdownState)
+        , fileRead (Result >> ReplaceNextJob)
         ]
 
 
@@ -911,8 +1052,11 @@ main =
 
                             Nothing ->
                                 init
+
+                    initialCmd =
+                        Task.perform WindowResize Window.size
                 in
-                    ( initialModel, Task.perform WindowResize Window.size )
+                    ( initialModel, initialCmd )
         , view = view
         , update =
             \msg oldModel ->
@@ -971,3 +1115,9 @@ port persistModel : Json.Encode.Value -> Cmd msg
 
 
 port syncModelFromDatabase : (Json.Encode.Value -> msg) -> Sub msg
+
+
+port readFile : String -> Cmd msg
+
+
+port fileRead : (Json.Encode.Value -> msg) -> Sub msg
