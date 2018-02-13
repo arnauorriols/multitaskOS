@@ -939,7 +939,7 @@ viewViewTypeToggle model =
                     "assignment"
     in
         button
-            [ class "waves-effect waves-light btn right icon-btn"
+            [ class "waves-effect waves-light btn right first-right icon-btn"
             , onClick ToggleViewType
             ]
             [ i
