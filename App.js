@@ -17159,7 +17159,11 @@ var _arnauorriols$multitaskos$Job$unsavedWorklogEntry = function (worklog) {
 		return _arnauorriols$multitaskos$Job$initWorklogEntry;
 	}
 };
-var _arnauorriols$multitaskos$Job$initWorklog = {ctor: '[]'};
+var _arnauorriols$multitaskos$Job$initWorklog = {
+	ctor: '::',
+	_0: _arnauorriols$multitaskos$Job$initWorklogEntry,
+	_1: {ctor: '[]'}
+};
 var _arnauorriols$multitaskos$Job$isValid = function (model) {
 	return !_elm_lang$core$String$isEmpty(model.title);
 };
@@ -18471,7 +18475,7 @@ var _arnauorriols$multitaskos$Main$viewViewTypeToggle = function (model) {
 		_elm_lang$html$Html$button,
 		{
 			ctor: '::',
-			_0: _elm_lang$html$Html_Attributes$class('waves-effect waves-light btn right icon-btn'),
+			_0: _elm_lang$html$Html_Attributes$class('waves-effect waves-light btn right first-right icon-btn'),
 			_1: {
 				ctor: '::',
 				_0: _elm_lang$html$Html_Events$onClick(_arnauorriols$multitaskos$Main$ToggleViewType),
