@@ -102,7 +102,7 @@ isValid model =
 
 initWorklog : Worklog
 initWorklog =
-    []
+    [initWorklogEntry]
 
 
 initWorklogEntry : WorklogEntry
